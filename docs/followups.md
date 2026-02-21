@@ -1,0 +1,5 @@
+- Interface for visualizing communication
+- Screenshot to see their current availability
+- Openclaw for it
+- Feature for each agent to ping their user
+- Show reasoning while you are waiting

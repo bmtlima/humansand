@@ -1,277 +1,195 @@
-# Multi-Agent Negotiation System — Implementation Plan
+# Implementation Plan: Multi-Agent Negotiation System
 
 ## Context
-Building a multi-agent system for a hackathon where personal AI assistants communicate with each other to negotiate tasks. The primary demo: a user asks "Find someone who's a software engineer proficient in Rust who is not busy right now." The agent discovers candidates via a registry, queries their agents for real-time status, and synthesizes a response.
 
-**Key decisions:**
-- LLM-driven orchestration (LLM decides when to call tools via function calling)
-- Direct agent-to-agent comms (no LLM on receiving side)
-- Hardcoded registry
-- minimax/minimax-m2.5 via OpenRouter (OpenAI-compatible Python SDK)
+Hackathon project where personal AI agents communicate with each other to negotiate tasks. A user chats with their agent via a ChatGPT-like interface, and the agent autonomously searches a registry, contacts other agents, and synthesizes answers. The user wants to see what the agent is doing (reasoning traces) and have persistent conversation history.
+
+The repo currently has no code — only `docs/plan.md` (backend spec) and `docs/followups.md`.
+
+---
+
+## Architecture Overview
+
+```
+Frontend (Next.js :3000)
+    |
+    v
+API Gateway (FastAPI :8080)    <-- NEW: conversation management, CORS, routing
+    |
+    v
+Agent Services (FastAPI :8001-8003)  <-- one per user (Alice, Bob, Charlie)
+    |
+    v
+Registry (FastAPI :8000)  +  Other Agents (agent-to-agent)
+```
+
+**Key addition to the original plan**: an **API Gateway** between the frontend and agents. This is needed because:
+- Conversation history management needs a single service (agents are per-user processes)
+- The frontend should talk to one URL, not know about agent ports
+- CORS is handled in one place
+- The agent `/chat` endpoint is modified to also return reasoning steps
 
 ---
 
 ## File Structure
+
 ```
-simulation/
-├── docs/
-│   └── plan.md          # This file
-├── registry.py          # Registry service (port 8000)
-├── base_agent.py        # Agent service (configurable port)
-├── mock_data.py         # Per-user mock data (calendar, activity)
-├── tools.py             # Tool definitions + execution logic
-├── run_demo.sh          # Script to start all services
-├── requirements.txt     # Dependencies
-└── .env                 # OPENROUTER_API_KEY
-```
-
----
-
-## Step 1: `requirements.txt`
-```
-fastapi
-uvicorn
-httpx
-openai
-python-dotenv
-```
-
-We use the `openai` Python SDK pointed at OpenRouter's base URL (`https://openrouter.ai/api/v1`). This gives us native tool/function calling support with the same interface.
-
----
-
-## Step 2: `mock_data.py` — Per-User Mock Data
-
-Define a dictionary keyed by user name. Each entry has calendar events and current activity.
-
-```python
-USER_MOCK_DATA = {
-    "Alice": {
-        "calendar": [
-            {"event": "Sprint Planning", "time": "in 30 minutes", "duration": "1 hour"},
-            {"event": "Project deadline", "time": "tonight", "duration": "N/A"}
-        ],
-        "activity": {
-            "status": "Focus time",
-            "application": "VS Code",
-            "detail": "Coding a Rust microservice"
-        }
-    },
-    "Bob": {
-        "calendar": [
-            {"event": "Lunch break", "time": "in 2 hours", "duration": "1 hour"}
-        ],
-        "activity": {
-            "status": "Idle",
-            "application": "Slack",
-            "detail": "Browsing messages"
-        }
-    },
-    "Charlie": {
-        "calendar": [
-            {"event": "1:1 with Manager", "time": "in 10 minutes", "duration": "30 min"},
-            {"event": "Code Review", "time": "in 2 hours", "duration": "1 hour"}
-        ],
-        "activity": {
-            "status": "In a meeting",
-            "application": "Zoom",
-            "detail": "Team standup"
-        }
-    }
-}
-```
-
-This way Alice is busy (focus + deadline), Bob is free, Charlie is in meetings. Makes the demo interesting.
-
----
-
-## Step 3: `tools.py` — Tool Definitions & Execution
-
-### 3a: OpenAI-format tool schemas (for LLM registration)
-
-```python
-TOOL_SCHEMAS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "search_registry",
-            "description": "Search the global registry for users matching a role and/or skill.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "role": {"type": "string", "description": "Job role to filter by, e.g. 'Software Engineer'"},
-                    "skill": {"type": "string", "description": "Skill to filter by, e.g. 'Rust'"}
-                }
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "message_agent",
-            "description": "Send a message to another user's agent to check their availability or ask a question.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "agent_url": {"type": "string", "description": "The URL of the target agent"},
-                    "user_name": {"type": "string", "description": "The name of the user whose agent you're contacting"},
-                    "intent": {"type": "string", "description": "The intent of the message, e.g. 'check_availability'"}
-                },
-                "required": ["agent_url", "user_name", "intent"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_calendar_events",
-            "description": "Get your owner's upcoming calendar events to determine their schedule.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_current_activity",
-            "description": "Get your owner's current screen/application activity from OpenClaw.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    }
-]
-```
-
-### 3b: Tool execution functions
-
-Each function is async. `search_registry` and `message_agent` make HTTP calls. `get_calendar_events` and `get_current_activity` read from `mock_data.py` using the agent's owner name.
-
----
-
-## Step 4: `registry.py` — Registry Service (Port 8000)
-
-- Hardcoded `USERS` dict with name, role, skills list, agent_url
-- `GET /search?role=...&skill=...` — filters and returns matches
-- Excludes the requesting agent's own user if a `exclude` param is passed (so an agent doesn't find itself)
-
-### Registry data:
-```python
-USERS = {
-    "Alice": {"role": "Software Engineer", "skills": ["Rust", "Python"], "agent_url": "http://localhost:8001"},
-    "Bob": {"role": "Software Engineer", "skills": ["Rust", "Go"], "agent_url": "http://localhost:8002"},
-    "Charlie": {"role": "Software Engineer", "skills": ["Python", "JavaScript"], "agent_url": "http://localhost:8003"},
-}
+humansand/
+├── backend/
+│   ├── .env                    # OPENROUTER_API_KEY
+│   ├── requirements.txt        # fastapi, uvicorn, httpx, openai, python-dotenv
+│   ├── run_demo.sh             # Starts all 5 services
+│   ├── registry.py             # Registry service (port 8000)
+│   ├── base_agent.py           # Per-user agent (ports 8001-8003)
+│   ├── mock_data.py            # Calendar/activity data per user
+│   ├── tools.py                # Tool schemas + execution
+│   ├── api_gateway.py          # NEW: frontend-facing API (port 8080)
+│   ├── conversation_store.py   # NEW: in-memory conversation storage
+│   └── models.py               # NEW: Pydantic request/response models
+│
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx              # Root layout with sidebar
+│   │   │   └── page.tsx                # Main page (renders AppShell)
+│   │   ├── components/
+│   │   │   ├── chat/
+│   │   │   │   ├── ChatArea.tsx        # Main chat container
+│   │   │   │   ├── MessageBubble.tsx   # User/assistant message
+│   │   │   │   ├── ReasoningTrace.tsx  # Collapsible agent steps
+│   │   │   │   ├── ChatInput.tsx       # Text input + send
+│   │   │   │   └── MessageList.tsx     # Scrollable message list
+│   │   │   ├── sidebar/
+│   │   │   │   ├── Sidebar.tsx         # Conversation list
+│   │   │   │   ├── ConversationItem.tsx
+│   │   │   │   └── NewChatButton.tsx
+│   │   │   └── layout/
+│   │   │       └── AppShell.tsx        # Sidebar + main area
+│   │   ├── lib/
+│   │   │   ├── api.ts                  # API client (all backend calls)
+│   │   │   └── types.ts               # TypeScript types
+│   │   └── hooks/
+│   │       ├── useChat.ts             # Chat state management
+│   │       └── useConversations.ts    # Conversation list state
+│   └── .env.local                      # NEXT_PUBLIC_API_URL=http://localhost:8080
+│
+└── docs/
+    ├── plan.md
+    ├── plan_new.md
+    └── followups.md
 ```
 
 ---
 
-## Step 5: `base_agent.py` — Agent Service
+## API Contract (Frontend <-> Gateway)
 
-### 5a: Startup config
-- CLI args: `--user-name Alice --port 8001`
-- Loads `OPENROUTER_API_KEY` from `.env`
-- Creates OpenAI client pointed at `https://openrouter.ai/api/v1`
-
-### 5b: `/chat` POST endpoint (User → Agent)
-Request: `{"message": "Find a Rust engineer who's free right now"}`
-
-**The Agentic Tool-Calling Loop:**
-1. Build messages list: system prompt (telling LLM who it is, who it serves) + user message
-2. Call LLM with messages + tool schemas
-3. If response contains `tool_calls`:
-   - Execute each tool call (dispatch to the right function)
-   - Append assistant message (with tool calls) to messages
-   - Append tool result messages to messages
-   - Go to step 2
-4. If response is a text message → return it to the user
-
-**System prompt template:**
-```
-You are a personal AI assistant for {user_name}. You help your user by answering
-questions, checking their schedule, and communicating with other users' agents.
-
-You have access to tools to:
-- Search a global registry of users by role/skill
-- Message other users' agents to check their availability
-- Check your own user's calendar and current activity
-
-When asked to find someone, search the registry first, then message each
-matching agent to check availability, then synthesize the results.
-```
-
-### 5c: `/agent-message` POST endpoint (Agent → Agent)
-Request schema:
+### `POST /chat`
+Send a message, get a response with reasoning steps.
 ```json
-{"sender_id": "Alice", "intent": "check_availability", "urgency": "normal", "context": "Looking for available Rust engineer"}
-```
+// Request
+{ "conversation_id": "abc123 | null", "message": "Find a Rust engineer who's free", "agent": "Alice" }
 
-**No LLM involved.** Direct logic:
-1. Read owner's mock calendar and activity data
-2. Determine availability based on activity status
-3. Return structured JSON:
-```json
+// Response
 {
-    "user_name": "Bob",
-    "status": "available",
-    "current_activity": "Idle - browsing Slack",
-    "upcoming": "Lunch break in 2 hours",
-    "message": "Bob appears to be available."
+  "conversation_id": "abc123",
+  "message": {
+    "role": "assistant",
+    "content": "Bob is available and knows Rust...",
+    "reasoning_steps": [
+      { "type": "tool_call", "tool_name": "search_registry", "summary": "Searching for Rust engineers...", "result": "Found: Bob" },
+      { "type": "tool_call", "tool_name": "message_agent", "summary": "Checking Bob's availability...", "result": "Bob is idle" }
+    ]
+  }
 }
 ```
 
-### 5d: Health/info endpoint
-`GET /` → returns `{"agent": user_name, "status": "online"}` (useful for debugging)
+### `GET /conversations`
+List all conversations (for sidebar). Returns `[{id, title, created_at, updated_at, agent}]`.
+
+### `GET /conversations/{id}`
+Load full conversation with all messages and reasoning steps.
+
+### `DELETE /conversations/{id}`
+Delete a conversation.
 
 ---
 
-## Step 6: `run_demo.sh` — Startup Script
+## Backend Modifications to Original Plan
+
+1. **`base_agent.py` `/chat` endpoint** — modified to return `{"content": str, "reasoning_steps": list}` instead of plain text. Also accepts optional `history` field for multi-turn context.
+2. **Reasoning step collection** — the tool-calling loop accumulates steps as it runs (tool name, args, result, human-readable summary).
+3. **`api_gateway.py`** — new service that handles conversation CRUD, forwards messages to the correct agent via httpx, and adds CORS middleware.
+4. **`conversation_store.py`** — simple dict-based in-memory store. Conversations lost on restart (fine for hackathon).
+
+---
+
+## Frontend Modularity Strategy
+
+Three layers of decoupling:
+1. **`api.ts`** — all backend calls in one file. If the API changes, only this file changes.
+2. **Custom hooks** (`useChat`, `useConversations`) — encapsulate state. Components call `sendMessage()` and read `messages`.
+3. **Presentation components** — receive data as props, render it. Zero knowledge of API or state.
+
+Using **shadcn/ui** for primitives: button, input, scroll-area, collapsible, skeleton, badge, avatar, card.
+
+---
+
+## Implementation Phases
+
+### Phase 1: Backend core
+Build from `docs/plan.md`: `mock_data.py` → `requirements.txt` → `tools.py` → `registry.py` → `base_agent.py` (with reasoning steps from the start) → `.env` → `run_demo.sh`
+
+**Verify**: `bash run_demo.sh`, curl tests, confirm reasoning steps in response.
+
+### Phase 2: API Gateway + conversation storage
+Build: `models.py` → `conversation_store.py` → `api_gateway.py`. Update `run_demo.sh`.
+
+**Verify**: curl all gateway endpoints, create conversation, send messages, retrieve history.
+
+### Phase 3: Frontend skeleton
+`create-next-app` + `shadcn init` + install components. Build: `types.ts` → `api.ts` → `AppShell.tsx` → `layout.tsx`.
+
+**Verify**: App runs at localhost:3000, shows two-panel layout.
+
+### Phase 4: Chat UI (core experience)
+Build: `useChat.ts` → `ChatInput.tsx` → `MessageBubble.tsx` → `ReasoningTrace.tsx` → `MessageList.tsx` → `ChatArea.tsx` → `chat/page.tsx`.
+
+**Verify**: Send "Find a Rust engineer who's free" from the UI, see response with collapsible reasoning traces.
+
+### Phase 5: Sidebar + conversation management
+Build: `useConversations.ts` → `NewChatButton.tsx` → `ConversationItem.tsx` → `Sidebar.tsx`.
+
+**Verify**: Create multiple conversations, switch between them, see history preserved.
+
+### Phase 6: Polish (if time permits)
+Streaming (SSE), typing indicators, auto-scroll, error toasts, agent selector dropdown, dark mode.
+
+---
+
+## Gotchas to Watch For
+
+- **OpenRouter rate limits**: 3-4 LLM calls per query — test under demo load
+- **Agent startup order**: add `sleep 2` after registry in `run_demo.sh`
+- **Port conflicts**: 5 services on ports 8000-8003 + 8080
+- **Tool call arg parsing**: OpenRouter may return args as string or dict — handle both
+- **Context window growth**: add simple truncation (keep last N messages) as safety valve
+- **Python version**: Use `python3` / `pip3` (system `python` is 2.7)
+
+---
+
+## How to Run
 
 ```bash
-#!/bin/bash
-# Start all services
-echo "Starting Registry on port 8000..."
-uvicorn registry:app --port 8000 &
+# Backend
+cd backend
+pip3 install -r requirements.txt
+# Set your OpenRouter key in .env
+bash run_demo.sh
 
-echo "Starting Alice's agent on port 8001..."
-python base_agent.py --user-name Alice --port 8001 &
-
-echo "Starting Bob's agent on port 8002..."
-python base_agent.py --user-name Bob --port 8002 &
-
-echo "Starting Charlie's agent on port 8003..."
-python base_agent.py --user-name Charlie --port 8003 &
-
-echo "All services started. Send requests to http://localhost:800X/chat"
-wait
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
----
-
-## Demo Flow (End-to-End)
-
-1. User sends POST to Alice's agent (`localhost:8001/chat`):
-   ```json
-   {"message": "Find someone who's a software engineer proficient in Rust who is not busy right now"}
-   ```
-
-2. Alice's LLM receives the message + tools, decides to call `search_registry(role="Software Engineer", skill="Rust")`
-
-3. Code executes → HTTP GET to `localhost:8000/search?role=Software+Engineer&skill=Rust&exclude=Alice`
-   → Returns Bob (Rust, Go)
-
-4. LLM receives results, decides to call `message_agent(agent_url="http://localhost:8002", user_name="Bob", intent="check_availability")`
-
-5. Code executes → HTTP POST to `localhost:8002/agent-message`
-   → Bob's agent checks mock data: Bob is idle, returns `{"status": "available", ...}`
-
-6. LLM receives Bob's status, synthesizes: "Bob is a Software Engineer skilled in Rust and Go. He's currently available — browsing Slack with no immediate meetings."
-
-7. Response returned to user.
-
----
-
-## Verification / Testing
-
-1. **Start all services**: `bash run_demo.sh`
-2. **Test registry**: `curl "http://localhost:8000/search?skill=Rust"` — should return Alice and Bob
-3. **Test agent-to-agent**: `curl -X POST http://localhost:8002/agent-message -H "Content-Type: application/json" -d '{"sender_id":"Alice","intent":"check_availability","urgency":"normal","context":"test"}'` — should return Bob's availability
-4. **Test full flow**: `curl -X POST http://localhost:8001/chat -H "Content-Type: application/json" -d '{"message":"Find a Rust engineer who is free right now"}'` — should return synthesized response mentioning Bob is available
-5. **Edge case**: Ask for a skill nobody has: `"Find a Haskell engineer"` — should gracefully report no matches
+Open http://localhost:3000 and try: "Find a Rust engineer who's free right now"
