@@ -31,4 +31,14 @@ USER_MOCK_DATA = {
             "detail": "Team standup",
         },
     },
+    "Diana": {
+        "calendar": [
+            {"event": "Team Retro", "time": "in 3 hours", "duration": "45 min"},
+        ],
+        "activity": {
+            "status": "Idle",
+            "application": "YouTube",
+            "detail": "Watching tech talks",
+        },
+    },
 }

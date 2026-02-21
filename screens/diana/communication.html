@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=720">
+<title>Slack - Acme Corp</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; background: #1a1d21; color: #d1d2d3; width: 1280px; height: 720px; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* Title bar */
+  .titlebar { height: 32px; background: #1a1d21; display: flex; align-items: center; padding: 0 12px; font-size: 13px; color: #999; border-bottom: 1px solid #333; }
+  .dots { display: flex; gap: 8px; margin-right: 16px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.red { background: #ff5f57; }
+  .dot.yellow { background: #febc2e; }
+  .dot.green { background: #28c840; }
+
+  /* Main layout */
+  .main { flex: 1; display: flex; overflow: hidden; }
+
+  /* Workspace sidebar */
+  .workspace-bar { width: 68px; background: #1a1d21; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 12px; border-right: 1px solid #333; }
+  .ws-icon { width: 36px; height: 36px; border-radius: 8px; background: #611f69; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #fff; }
+  .ws-icon.active { outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* Channel sidebar */
+  .channel-sidebar { width: 260px; background: #1a1d21; border-right: 1px solid #333; display: flex; flex-direction: column; }
+  .workspace-name { padding: 12px 16px; font-size: 16px; font-weight: 700; color: #fff; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; }
+  .section-label { padding: 8px 16px 4px; font-size: 13px; color: #888; display: flex; align-items: center; gap: 4px; }
+  .channel-item { padding: 4px 16px 4px 24px; font-size: 14px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .channel-item:hover { background: #27242c; }
+  .channel-item.active { background: #1164a3; color: #fff; border-radius: 6px; margin: 0 8px; padding-left: 16px; }
+  .channel-item .hash { color: #888; font-size: 16px; }
+  .channel-item.active .hash { color: #fff; }
+  .channel-item .unread { margin-left: auto; background: #cd2553; color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 10px; }
+  .dm-item { padding: 4px 16px 4px 24px; font-size: 14px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .dm-item:hover { background: #27242c; }
+  .dm-status { width: 8px; height: 8px; border-radius: 50%; }
+  .dm-status.online { background: #2bac76; }
+  .dm-status.offline { background: #555; }
+
+  /* Chat area */
+  .chat-area { flex: 1; display: flex; flex-direction: column; background: #222529; }
+  .chat-header { height: 50px; background: #222529; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 20px; gap: 8px; }
+  .chat-header .channel-name { font-size: 16px; font-weight: 700; color: #fff; }
+  .chat-header .channel-desc { font-size: 13px; color: #888; margin-left: 8px; }
+  .chat-header .members { margin-left: auto; font-size: 13px; color: #888; }
+
+  .messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .message { display: flex; gap: 10px; padding: 6px 0; }
+  .msg-avatar { width: 36px; height: 36px; min-width: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; }
+  .msg-avatar.purple { background: #7c3aed; }
+  .msg-avatar.blue { background: #2563eb; }
+  .msg-avatar.green { background: #16a34a; }
+  .msg-avatar.orange { background: #ea580c; }
+  .msg-avatar.pink { background: #db2777; }
+  .msg-body { flex: 1; }
+  .msg-header { display: flex; align-items: baseline; gap: 8px; }
+  .msg-name { font-weight: 700; color: #fff; font-size: 14px; }
+  .msg-time { font-size: 12px; color: #666; }
+  .msg-text { font-size: 14px; line-height: 1.5; color: #d1d2d3; margin-top: 2px; }
+  .msg-text code { background: #2d2d2d; padding: 2px 5px; border-radius: 3px; font-size: 13px; color: #e06c75; }
+  .msg-text .mention { color: #1d9bd1; background: rgba(29, 155, 209, 0.1); padding: 0 2px; border-radius: 3px; }
+  .msg-reaction { display: inline-flex; align-items: center; gap: 4px; background: #2d2d2d; border: 1px solid #444; border-radius: 12px; padding: 2px 8px; font-size: 12px; margin-top: 4px; }
+
+  .typing { padding: 8px 20px; font-size: 13px; color: #888; height: 32px; }
+  .chat-input-area { padding: 12px 20px; border-top: 1px solid #333; }
+  .chat-input { background: #2d2d2d; border: 1px solid #444; border-radius: 8px; padding: 10px 14px; color: #d1d2d3; font-size: 14px; width: 100%; }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="dots">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+    </div>
+    <span>Slack — Acme Corp</span>
+  </div>
+
+  <div class="main">
+    <div class="workspace-bar">
+      <div class="ws-icon active">A</div>
+      <div class="ws-icon" style="background: #2563eb;">D</div>
+    </div>
+
+    <div class="channel-sidebar">
+      <div class="workspace-name">
+        Acme Corp
+        <span style="font-size: 12px; color: #2bac76;">●</span>
+      </div>
+
+      <div class="section-label">▼ Channels</div>
+      <div class="channel-item"><span class="hash">#</span> general</div>
+      <div class="channel-item"><span class="hash">#</span> engineering</div>
+      <div class="channel-item active"><span class="hash">#</span> infra <span class="unread">2</span></div>
+      <div class="channel-item"><span class="hash">#</span> random</div>
+      <div class="channel-item"><span class="hash">#</span> deployments</div>
+
+      <div class="section-label" style="margin-top: 8px;">▼ Direct Messages</div>
+      <div class="dm-item"><span class="dm-status online"></span> Alice Chen</div>
+      <div class="dm-item"><span class="dm-status online"></span> Bob Martinez</div>
+      <div class="dm-item"><span class="dm-status offline"></span> Charlie Wu</div>
+      <div class="dm-item"><span class="dm-status offline"></span> Eve Johnson</div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <span class="channel-name"># infra</span>
+        <span class="channel-desc">Infrastructure and DevOps discussions</span>
+        <span class="members">👤 12</span>
+      </div>
+
+      <div class="messages">
+        <div class="message">
+          <div class="msg-avatar pink">D</div>
+          <div class="msg-body">
+            <div class="msg-header">
+              <span class="msg-name">Diana Park</span>
+              <span class="msg-time">11:15 AM</span>
+            </div>
+            <div class="msg-text">Just upgraded the staging cluster to K8s 1.29. Rolling restarts went smoothly, zero downtime.</div>
+            <div class="msg-reaction">🎉 3</div>
+          </div>
+        </div>
+
+        <div class="message">
+          <div class="msg-avatar blue">B</div>
+          <div class="msg-body">
+            <div class="msg-header">
+              <span class="msg-name">Bob Martinez</span>
+              <span class="msg-time">11:18 AM</span>
+            </div>
+            <div class="msg-text">Nice work! Did you run the <code>kube-bench</code> security scan after the upgrade?</div>
+          </div>
+        </div>
+
+        <div class="message">
+          <div class="msg-avatar pink">D</div>
+          <div class="msg-body">
+            <div class="msg-header">
+              <span class="msg-name">Diana Park</span>
+              <span class="msg-time">11:20 AM</span>
+            </div>
+            <div class="msg-text">Yep, all green. Also updated the Helm charts in the <code>infra-configs</code> repo. PR is up for review.</div>
+          </div>
+        </div>
+
+        <div class="message">
+          <div class="msg-avatar purple">A</div>
+          <div class="msg-body">
+            <div class="msg-header">
+              <span class="msg-name">Alice Chen</span>
+              <span class="msg-time">11:22 AM</span>
+            </div>
+            <div class="msg-text"><span class="mention">@Diana</span> can you also check if the Rust service's resource limits need adjusting for the new node pool?</div>
+          </div>
+        </div>
+
+        <div class="message">
+          <div class="msg-avatar pink">D</div>
+          <div class="msg-body">
+            <div class="msg-header">
+              <span class="msg-name">Diana Park</span>
+              <span class="msg-time">11:24 AM</span>
+            </div>
+            <div class="msg-text">Good call. I'll profile it this afternoon and update the deployment manifest.</div>
+            <div class="msg-reaction">👍 2</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="typing">&nbsp;</div>
+
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" placeholder="Message #infra" readonly>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

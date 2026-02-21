@@ -30,6 +30,16 @@ services:
     networks:
       - humansand
 
+  screen-diana:
+    build:
+      context: ./screens
+      args:
+        USER_DIR: diana
+    ports:
+      - "6004:80"
+    networks:
+      - humansand
+
   # --- Screenshot service (Playwright) ---
   screenshot-svc:
     build:
@@ -41,10 +51,12 @@ services:
       - SCREEN_ALICE_URL=http://screen-alice:80
       - SCREEN_BOB_URL=http://screen-bob:80
       - SCREEN_CHARLIE_URL=http://screen-charlie:80
+      - SCREEN_DIANA_URL=http://screen-diana:80
     depends_on:
       - screen-alice
       - screen-bob
       - screen-charlie
+      - screen-diana
     networks:
       - humansand
 
@@ -60,6 +72,7 @@ services:
       - AGENT_ALICE_URL=http://agent-alice:8001
       - AGENT_BOB_URL=http://agent-bob:8002
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
     networks:
       - humansand
 
@@ -79,6 +92,7 @@ services:
       - AGENT_ALICE_URL=http://agent-alice:8001
       - AGENT_BOB_URL=http://agent-bob:8002
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
     depends_on:
       - registry
       - screenshot-svc
@@ -100,6 +114,7 @@ services:
       - AGENT_ALICE_URL=http://agent-alice:8001
       - AGENT_BOB_URL=http://agent-bob:8002
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
     depends_on:
       - registry
       - screenshot-svc
@@ -121,6 +136,29 @@ services:
       - AGENT_ALICE_URL=http://agent-alice:8001
       - AGENT_BOB_URL=http://agent-bob:8002
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
+    depends_on:
+      - registry
+      - screenshot-svc
+    networks:
+      - humansand
+
+  agent-diana:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.agent
+    command: python3 base_agent.py --user-name Diana --port 8004
+    ports:
+      - "8004:8004"
+    env_file:
+      - ./backend/.env
+    environment:
+      - SCREENSHOT_SERVICE_URL=http://screenshot-svc:7000
+      - REGISTRY_URL=http://registry:8000
+      - AGENT_ALICE_URL=http://agent-alice:8001
+      - AGENT_BOB_URL=http://agent-bob:8002
+      - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
     depends_on:
       - registry
       - screenshot-svc
@@ -141,12 +179,14 @@ services:
       - AGENT_ALICE_URL=http://agent-alice:8001
       - AGENT_BOB_URL=http://agent-bob:8002
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
+      - AGENT_DIANA_URL=http://agent-diana:8004
       - REGISTRY_URL=http://registry:8000
       - SCREENSHOT_SERVICE_URL=http://screenshot-svc:7000
     depends_on:
       - agent-alice
       - agent-bob
       - agent-charlie
+      - agent-diana
     networks:
       - humansand
 

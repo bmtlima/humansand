@@ -21,6 +21,9 @@ python3 base_agent.py --user-name Bob --port 8002 &
 echo "Starting Charlie's agent on port 8003..."
 python3 base_agent.py --user-name Charlie --port 8003 &
 
+echo "Starting Diana's agent on port 8004..."
+python3 base_agent.py --user-name Diana --port 8004 &
+
 sleep 2
 
 echo "Starting API Gateway on port 8080..."
@@ -32,6 +35,7 @@ echo "  Registry:  http://localhost:8000"
 echo "  Alice:     http://localhost:8001"
 echo "  Bob:       http://localhost:8002"
 echo "  Charlie:   http://localhost:8003"
+echo "  Diana:     http://localhost:8004"
 echo "  Gateway:   http://localhost:8080"
 echo ""
 echo "Press Ctrl+C to stop all services."

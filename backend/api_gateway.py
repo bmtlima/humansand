@@ -35,6 +35,7 @@ AGENT_URLS = {
     "Alice": os.environ.get("AGENT_ALICE_URL", "http://localhost:8001"),
     "Bob": os.environ.get("AGENT_BOB_URL", "http://localhost:8002"),
     "Charlie": os.environ.get("AGENT_CHARLIE_URL", "http://localhost:8003"),
+    "Diana": os.environ.get("AGENT_DIANA_URL", "http://localhost:8004"),
 }
 
 REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:8000")

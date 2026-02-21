@@ -19,13 +19,15 @@ SCREEN_URLS = {
     "Alice": os.environ.get("SCREEN_ALICE_URL", "http://screen-alice:80"),
     "Bob": os.environ.get("SCREEN_BOB_URL", "http://screen-bob:80"),
     "Charlie": os.environ.get("SCREEN_CHARLIE_URL", "http://screen-charlie:80"),
+    "Diana": os.environ.get("SCREEN_DIANA_URL", "http://screen-diana:80"),
 }
 
 # Default states matching existing screens
 _screen_states = {
     "Alice": "focus_work",
-    "Bob": "available",
+    "Bob": "focus_work",
     "Charlie": "communication",
+    "Diana": "available",
 }
 
 _browser: Browser | None = None

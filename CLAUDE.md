@@ -1,6 +1,6 @@
 # HumanSand
 
-Multi-agent negotiation system where personal AI agents communicate on behalf of users. Each user (Alice, Bob, Charlie) has a dedicated AI agent that can search a registry, message other agents, check calendars, and detect real-time activity via screenshot-based vision.
+Multi-agent negotiation system where personal AI agents communicate on behalf of users. Each user (Alice, Bob, Charlie, Diana) has a dedicated AI agent that can search a registry, message other agents, check calendars, and detect real-time activity via screenshot-based vision.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@ Multi-agent negotiation system where personal AI agents communicate on behalf of
 # Backend (local, all services)
 cd backend
 pip3 install -r requirements.txt
-bash run_demo.sh     # Starts registry:8000, agents:8001-8003, gateway:8080
+bash run_demo.sh     # Starts registry:8000, agents:8001-8004, gateway:8080
 
 # Frontend
 cd frontend
@@ -38,9 +38,10 @@ Frontend (Next.js :3000)
       → Alice's Agent (:8001)
       → Bob's Agent (:8002)
       → Charlie's Agent (:8003)
+      → Diana's Agent (:8004)
       → Registry (:8000)
       → Screenshot Service (:7000, Docker only)
-          → Screen Servers (:6001-6003, simulated user screens)
+          → Screen Servers (:6001-6004, simulated user screens)
 ```
 
 - **Gateway** (`api_gateway.py`): Routes frontend requests to agents, manages conversations in SQLite, relays SSE streams, proxies screen control
@@ -105,6 +106,7 @@ screens/                 # Simulated user screens (static HTML served via nginx 
   alice/                 # HTML pages for each activity state
   bob/
   charlie/
+  diana/
 
 docs/
   plan.md                # Original implementation plan
@@ -128,7 +130,7 @@ docs/
 | POST | `/set-screen/{user_name}` | Switch simulated screen state |
 | GET | `/screen-states` | Get all users' current screen states |
 
-### Agent (`:8001-8003`, internal)
+### Agent (`:8001-8004`, internal)
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -150,12 +152,12 @@ docs/
 - `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:8080`
 
 Docker overrides (set in `docker-compose.yml`):
-- `AGENT_ALICE_URL`, `AGENT_BOB_URL`, `AGENT_CHARLIE_URL`
+- `AGENT_ALICE_URL`, `AGENT_BOB_URL`, `AGENT_CHARLIE_URL`, `AGENT_DIANA_URL`
 - `REGISTRY_URL`, `SCREENSHOT_SERVICE_URL`
-- `SCREEN_ALICE_URL`, `SCREEN_BOB_URL`, `SCREEN_CHARLIE_URL`
+- `SCREEN_ALICE_URL`, `SCREEN_BOB_URL`, `SCREEN_CHARLIE_URL`, `SCREEN_DIANA_URL`
 
 ## Service Startup Order
 
-Registry (8000) → Agents (8001-8003) → Gateway (8080) → Frontend (3000)
+Registry (8000) → Agents (8001-8004) → Gateway (8080) → Frontend (3000)
 
 `run_demo.sh` handles this with sleep delays between stages. Docker Compose uses `depends_on`.

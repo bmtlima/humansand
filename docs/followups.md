@@ -6,6 +6,7 @@
     -> only do this with permission
 - make scalable
 - improve UI
+- change project name (Link Mate)
 
 DONE: 
 - Screenshot to see their current availability

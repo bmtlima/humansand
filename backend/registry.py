@@ -26,6 +26,12 @@ USERS = {
         "skills": ["Python", "JavaScript"],
         "agent_url": os.environ.get("AGENT_CHARLIE_URL", "http://localhost:8003"),
     },
+    "Diana": {
+        "name": "Diana",
+        "role": "Software Engineer",
+        "skills": ["Rust", "Python", "Kubernetes"],
+        "agent_url": os.environ.get("AGENT_DIANA_URL", "http://localhost:8004"),
+    },
 }
 
 
