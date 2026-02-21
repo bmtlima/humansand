@@ -12,19 +12,19 @@ USERS = {
         "name": "Alice",
         "role": "Software Engineer",
         "skills": ["Rust", "Python", "Java"],
-        "agent_url": "http://localhost:8001",
+        "agent_url": os.environ.get("AGENT_ALICE_URL", "http://localhost:8001"),
     },
     "Bob": {
         "name": "Bob",
         "role": "Software Engineer",
         "skills": ["Rust", "Go"],
-        "agent_url": "http://localhost:8002",
+        "agent_url": os.environ.get("AGENT_BOB_URL", "http://localhost:8002"),
     },
     "Charlie": {
         "name": "Charlie",
         "role": "Software Engineer",
         "skills": ["Python", "JavaScript"],
-        "agent_url": "http://localhost:8003",
+        "agent_url": os.environ.get("AGENT_CHARLIE_URL", "http://localhost:8003"),
     },
 }
 
@@ -72,25 +72,11 @@ def update_user(user_name: str, body: ProfileUpdate):
 
 
 def _persist_users():
-    """Rewrite the USERS dict in this file so edits survive restarts."""
-    lines = ["USERS = {"]
-    for name, user in USERS.items():
-        lines.append(f'    "{name}": {{')
-        lines.append(f'        "name": "{user["name"]}",')
-        lines.append(f'        "role": "{user["role"]}",')
-        skills = ", ".join(f'"{s}"' for s in user["skills"])
-        lines.append(f'        "skills": [{skills}],')
-        lines.append(f'        "agent_url": "{user["agent_url"]}",')
-        lines.append("    },")
-    lines.append("}")
-    new_block = "\n".join(lines)
-
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "registry.py")
-    with open(file_path, "r") as f:
-        source = f.read()
-    source = re.sub(r"USERS = \{.*?\n\}", new_block, source, flags=re.DOTALL)
-    with open(file_path, "w") as f:
-        f.write(source)
+    """Persist user profile edits to a JSON sidecar (doesn't rewrite source anymore)."""
+    persist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users_override.json")
+    import json as _json
+    with open(persist_path, "w") as f:
+        _json.dump(USERS, f, indent=2)
 
 
 @app.get("/")

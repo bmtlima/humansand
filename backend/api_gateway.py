@@ -1,12 +1,13 @@
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 
 from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep, RenameRequest
 from conversation_store import store
@@ -31,12 +32,13 @@ app.add_middleware(
 )
 
 AGENT_URLS = {
-    "Alice": "http://localhost:8001",
-    "Bob": "http://localhost:8002",
-    "Charlie": "http://localhost:8003",
+    "Alice": os.environ.get("AGENT_ALICE_URL", "http://localhost:8001"),
+    "Bob": os.environ.get("AGENT_BOB_URL", "http://localhost:8002"),
+    "Charlie": os.environ.get("AGENT_CHARLIE_URL", "http://localhost:8003"),
 }
 
-REGISTRY_URL = "http://localhost:8000"
+REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:8000")
+SCREENSHOT_SERVICE_URL = os.environ.get("SCREENSHOT_SERVICE_URL", "http://localhost:7000")
 
 
 @app.post("/chat")
@@ -114,6 +116,7 @@ async def chat(req: ChatMessageRequest):
                 "tool_name": s.get("tool_name", ""),
                 "summary": s.get("summary", ""),
                 "result": s.get("result", ""),
+                "screenshot_url": s.get("screenshot_url"),
             }
             for s in reasoning_steps
         ]
@@ -203,6 +206,14 @@ async def update_agent_data(user_name: str, body: AgentDataUpdateRequest):
         if tasks:
             await asyncio.gather(*tasks)
     return {"ok": True}
+
+
+@app.get("/screenshots/{filename}")
+async def proxy_screenshot(filename: str):
+    """Proxy screenshot requests to the screenshot service."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{SCREENSHOT_SERVICE_URL}/screenshots/{filename}", timeout=10)
+        return Response(content=resp.content, media_type="image/png")
 
 
 @app.get("/")

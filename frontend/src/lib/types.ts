@@ -3,6 +3,7 @@ export interface ReasoningStep {
   tool_name: string;
   summary: string;
   result: string;
+  screenshot_url?: string | null;
 }
 
 export interface Message {

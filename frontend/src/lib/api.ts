@@ -75,6 +75,7 @@ export async function sendMessageStream(
             tool_name: event.tool_name,
             summary: event.summary,
             result: event.result,
+            screenshot_url: event.screenshot_url || null,
           });
         } else if (event.type === "final") {
           onComplete(event.conversation_id, event.content);

@@ -58,6 +58,19 @@ export function ReasoningTrace({ steps, isStreaming = false }: ReasoningTracePro
                   {step.result}
                 </pre>
               )}
+              {step.screenshot_url && (
+                <div className="mt-2">
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${step.screenshot_url}`}
+                    alt={`${step.tool_name} screenshot`}
+                    className="rounded-lg border shadow-sm max-w-full max-h-64 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(
+                      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${step.screenshot_url}`,
+                      '_blank'
+                    )}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

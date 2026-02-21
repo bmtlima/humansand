@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -22,9 +23,15 @@ args, _ = parser.parse_known_args()
 USER_NAME = args.user_name
 PORT = args.port
 
+SCREENSHOT_SERVICE_URL = os.environ.get("SCREENSHOT_SERVICE_URL", "http://localhost:7000")
+
 app = FastAPI(title=f"{USER_NAME}'s Agent")
 
 client = anthropic.AsyncAnthropic(
+    api_key=os.getenv("ANTHROPIC_API_KEY"),
+)
+
+vision_client = anthropic.AsyncAnthropic(
     api_key=os.getenv("ANTHROPIC_API_KEY"),
 )
 
@@ -150,11 +157,21 @@ async def chat(req: ChatRequest):
 
                     result = await execute_tool(fn_name, fn_args, USER_NAME)
 
+                    # Extract screenshot_url from tool results if present
+                    screenshot_url = None
+                    if fn_name == "message_agent":
+                        try:
+                            result_data = json.loads(result)
+                            screenshot_url = result_data.get("screenshot_url")
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+
                     step = {
                         "type": "reasoning_step",
                         "tool_name": fn_name,
                         "summary": _make_summary(fn_name, fn_args),
                         "result": result[:500],
+                        "screenshot_url": screenshot_url,
                     }
                     yield f"data: {json.dumps(step)}\n\n"
 
@@ -183,26 +200,79 @@ async def chat(req: ChatRequest):
 
 @app.post("/agent-message")
 async def agent_message(req: AgentMessageRequest):
-    """Handle incoming messages from other agents. No LLM — direct logic."""
-    data = USER_MOCK_DATA.get(USER_NAME, {})
-    activity = data.get("activity", {})
-    calendar = data.get("calendar", [])
+    """Handle incoming messages from other agents. Screenshots own screen + vision analysis."""
 
-    status_text = activity.get("status", "Unknown")
-    is_available = status_text.lower() in ["idle", "available"]
+    # 1. Take screenshot of own screen via screenshot service
+    screenshot_url = None
+    screenshot_base64 = None
+    try:
+        async with httpx.AsyncClient() as http:
+            resp = await http.post(
+                f"{SCREENSHOT_SERVICE_URL}/screenshot",
+                json={"user_name": USER_NAME},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                screenshot_base64 = data["screenshot_base64"]
+                screenshot_url = data["screenshot_url"]
+    except Exception:
+        pass  # Fall back to mock data if screenshot fails
 
+    # 2. Analyze screenshot with Claude Haiku 4.5 (vision)
+    if screenshot_base64:
+        analysis = await _analyze_screenshot(screenshot_base64)
+    else:
+        # Fallback to mock data if screenshot unavailable
+        activity = USER_MOCK_DATA.get(USER_NAME, {}).get("activity", {})
+        analysis = {
+            "summary": f"{activity.get('status', 'Unknown')} - {activity.get('detail', '')}",
+            "is_busy": activity.get("status", "").lower() not in ["idle", "available"],
+        }
+
+    # 3. Get calendar from mock data (still useful)
+    calendar = USER_MOCK_DATA.get(USER_NAME, {}).get("calendar", [])
     upcoming = calendar[0] if calendar else None
-    upcoming_text = (
-        f"{upcoming['event']} {upcoming['time']}" if upcoming else "Nothing scheduled soon"
-    )
 
     return {
         "user_name": USER_NAME,
-        "status": "available" if is_available else "busy",
-        "current_activity": f"{status_text} - {activity.get('detail', '')}",
-        "upcoming": upcoming_text,
-        "message": f"{USER_NAME} {'appears to be available' if is_available else 'is currently busy'}.",
+        "status": "busy" if analysis["is_busy"] else "available",
+        "current_activity": analysis["summary"],
+        "upcoming": f"{upcoming['event']} {upcoming['time']}" if upcoming else "Nothing scheduled",
+        "message": f"{USER_NAME} {'is currently busy' if analysis['is_busy'] else 'appears to be available'}.",
+        "screenshot_url": screenshot_url,
     }
+
+
+async def _analyze_screenshot(base64_image: str) -> dict:
+    """Send screenshot to Claude Haiku 4.5 for vision analysis."""
+    try:
+        response = await vision_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": base64_image,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": 'What is this person doing on their computer? Are they actively working or idle/available? Respond in JSON: {"summary": "1-2 sentence description", "is_busy": true/false}',
+                    },
+                ],
+            }],
+        )
+        return json.loads(response.content[0].text)
+    except (json.JSONDecodeError, IndexError):
+        return {"summary": response.content[0].text, "is_busy": False}
+    except Exception:
+        return {"summary": "Unable to analyze screenshot", "is_busy": False}
 
 
 def _make_summary(tool_name: str, args: dict) -> str:

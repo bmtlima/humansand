@@ -1,8 +1,9 @@
 import json
+import os
 import httpx
 from mock_data import USER_MOCK_DATA
 
-REGISTRY_URL = "http://localhost:8000"
+REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:8000")
 
 TOOL_SCHEMAS = [
     {
