@@ -2,179 +2,67 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1280, height=720">
-<title>VS Code - project/src/main.rs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alice — Screen Control</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', 'Consolas', monospace; background: #1e1e1e; color: #d4d4d4; width: 1280px; height: 720px; overflow: hidden; display: flex; flex-direction: column; }
-
-  /* Title bar */
-  .titlebar { height: 32px; background: #323233; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #999; }
-  .titlebar .dots { display: flex; gap: 8px; margin-right: 16px; }
-  .titlebar .dot { width: 12px; height: 12px; border-radius: 50%; }
-  .titlebar .dot.red { background: #ff5f57; }
-  .titlebar .dot.yellow { background: #febc2e; }
-  .titlebar .dot.green { background: #28c840; }
-
-  /* Main layout */
-  .main { flex: 1; display: flex; overflow: hidden; }
-
-  /* Activity bar */
-  .activitybar { width: 48px; background: #333; display: flex; flex-direction: column; align-items: center; padding-top: 8px; gap: 16px; }
-  .activitybar .icon { width: 28px; height: 28px; background: #555; border-radius: 4px; opacity: 0.6; }
-  .activitybar .icon.active { opacity: 1; border-left: 2px solid #007acc; }
-
-  /* Sidebar */
-  .sidebar { width: 220px; background: #252526; border-right: 1px solid #333; font-size: 13px; }
-  .sidebar-header { padding: 10px 12px; text-transform: uppercase; font-size: 11px; color: #888; letter-spacing: 0.5px; }
-  .file-tree { padding: 0 8px; }
-  .tree-item { padding: 3px 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 3px; }
-  .tree-item:hover { background: #2a2d2e; }
-  .tree-item.active { background: #37373d; color: #fff; }
-  .tree-item .icon-file { color: #e8ab53; font-size: 11px; }
-  .tree-item .icon-folder { color: #dcb67a; font-size: 11px; }
-  .tree-item.folder { color: #ccc; }
-
-  /* Editor area */
-  .editor-area { flex: 1; display: flex; flex-direction: column; }
-
-  /* Tabs */
-  .tabs { height: 36px; background: #252526; display: flex; border-bottom: 1px solid #333; }
-  .tab { padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 13px; color: #999; border-right: 1px solid #333; cursor: pointer; }
-  .tab.active { background: #1e1e1e; color: #fff; border-top: 1px solid #007acc; }
-
-  /* Code editor */
-  .code { flex: 1; display: flex; overflow: hidden; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 20px; }
-  .line-numbers { width: 50px; background: #1e1e1e; color: #858585; text-align: right; padding: 8px 8px 8px 0; user-select: none; }
-  .code-content { flex: 1; padding: 8px 0 8px 16px; overflow: hidden; }
-
-  /* Syntax colors */
-  .kw { color: #569cd6; }
-  .fn { color: #dcdcaa; }
-  .str { color: #ce9178; }
-  .cmt { color: #6a9955; }
-  .type { color: #4ec9b0; }
-  .num { color: #b5cea8; }
-  .mac { color: #d7ba7d; }
-  .op { color: #d4d4d4; }
-  .punct { color: #d4d4d4; }
-
-  /* Terminal */
-  .terminal { height: 160px; background: #1e1e1e; border-top: 1px solid #333; font-family: 'Consolas', monospace; font-size: 12px; }
-  .terminal-header { height: 28px; background: #252526; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #999; gap: 12px; }
-  .terminal-header .tab-active { color: #fff; }
-  .terminal-body { padding: 8px 12px; color: #ccc; line-height: 18px; }
-  .terminal-body .prompt { color: #6a9955; }
-  .terminal-body .cmd { color: #dcdcaa; }
-  .terminal-body .warn { color: #e8ab53; }
-  .terminal-body .ok { color: #6a9955; }
-
-  /* Status bar */
-  .statusbar { height: 24px; background: #007acc; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #fff; gap: 16px; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #111; color: #fff; height: 100vh; display: flex; flex-direction: column; }
+  .control-bar {
+    height: 48px; background: #1a1a2e; display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    border-bottom: 2px solid #0f3460; flex-shrink: 0;
+  }
+  .user-label { font-weight: 700; font-size: 15px; margin-right: 8px; color: #e94560; }
+  .btn {
+    padding: 6px 14px; border: 1px solid #333; border-radius: 6px; background: #222;
+    color: #ccc; font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { background: #333; color: #fff; }
+  .btn.active { background: #0f3460; border-color: #e94560; color: #fff; }
+  iframe { flex: 1; width: 100%; border: none; }
 </style>
 </head>
 <body>
-  <div class="titlebar">
-    <div class="dots">
-      <div class="dot red"></div>
-      <div class="dot yellow"></div>
-      <div class="dot green"></div>
-    </div>
-    <span>main.rs — rust-microservice — Visual Studio Code</span>
+  <div class="control-bar">
+    <span class="user-label">Alice</span>
+    <button class="btn" data-state="focus_work">VS Code</button>
+    <button class="btn" data-state="available">YouTube</button>
+    <button class="btn" data-state="in_meeting">Zoom</button>
   </div>
+  <iframe id="screen" src="focus_work.html"></iframe>
 
-  <div class="main">
-    <div class="activitybar">
-      <div class="icon active"></div>
-      <div class="icon"></div>
-      <div class="icon"></div>
-      <div class="icon"></div>
-      <div class="icon"></div>
-    </div>
+  <script>
+    const GATEWAY = 'http://localhost:8080';
+    const USER = 'Alice';
+    const buttons = document.querySelectorAll('.btn');
+    const iframe = document.getElementById('screen');
 
-    <div class="sidebar">
-      <div class="sidebar-header">Explorer</div>
-      <div class="file-tree">
-        <div class="tree-item folder"><span class="icon-folder">▼</span> src</div>
-        <div class="tree-item active" style="padding-left: 24px;"><span class="icon-file">●</span> main.rs</div>
-        <div class="tree-item" style="padding-left: 24px;"><span class="icon-file">○</span> lib.rs</div>
-        <div class="tree-item" style="padding-left: 24px;"><span class="icon-file">○</span> handlers.rs</div>
-        <div class="tree-item" style="padding-left: 24px;"><span class="icon-file">○</span> models.rs</div>
-        <div class="tree-item folder"><span class="icon-folder">▶</span> tests</div>
-        <div class="tree-item"><span class="icon-file">○</span> Cargo.toml</div>
-        <div class="tree-item"><span class="icon-file">○</span> Cargo.lock</div>
-        <div class="tree-item"><span class="icon-file">○</span> Dockerfile</div>
-        <div class="tree-item"><span class="icon-file">○</span> README.md</div>
-      </div>
-    </div>
+    function setActive(state) {
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.state === state));
+      iframe.src = state + '.html';
+    }
 
-    <div class="editor-area">
-      <div class="tabs">
-        <div class="tab active">main.rs</div>
-        <div class="tab">Cargo.toml</div>
-      </div>
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const state = btn.dataset.state;
+        setActive(state);
+        try {
+          await fetch(`${GATEWAY}/set-screen/${USER}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state }),
+          });
+        } catch (e) { console.error('Failed to set screen:', e); }
+      });
+    });
 
-      <div class="code">
-        <div class="line-numbers">
-1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15<br>16<br>17<br>18<br>19<br>20<br>21<br>22<br>23<br>24<br>25
-        </div>
-        <div class="code-content">
-<span class="kw">use</span> actix_web::{<span class="type">App</span>, <span class="type">HttpServer</span>, web, <span class="type">HttpResponse</span>};<br>
-<span class="kw">use</span> serde::{<span class="type">Deserialize</span>, <span class="type">Serialize</span>};<br>
-<br>
-<span class="mac">#[derive(Serialize, Deserialize)]</span><br>
-<span class="kw">struct</span> <span class="type">ApiResponse</span> {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;status: <span class="type">String</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;data: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;,<br>
-}<br>
-<br>
-<span class="kw">async fn</span> <span class="fn">health_check</span>() -&gt; <span class="type">HttpResponse</span> {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="type">HttpResponse</span>::<span class="fn">Ok</span>().<span class="fn">json</span>(<span class="type">ApiResponse</span> {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status: <span class="str">"healthy"</span>.<span class="fn">to_string</span>(),<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data: <span class="kw">vec</span>![],<br>
-&nbsp;&nbsp;&nbsp;&nbsp;})<br>
-}<br>
-<br>
-<span class="mac">#[actix_web::main]</span><br>
-<span class="kw">async fn</span> <span class="fn">main</span>() -&gt; std::io::<span class="type">Result</span>&lt;()&gt; {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">println!</span>(<span class="str">"Starting server on :8080"</span>);<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="type">HttpServer</span>::<span class="fn">new</span>(|| {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="type">App</span>::<span class="fn">new</span>()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.<span class="fn">route</span>(<span class="str">"/health"</span>, web::<span class="fn">get</span>().<span class="fn">to</span>(<span class="fn">health_check</span>))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;}).<span class="fn">bind</span>(<span class="str">"0.0.0.0:8080"</span>)?.<span class="fn">run</span>().<span class="kw">await</span><br>
-}<br>
-<span class="cmt">// TODO: Add database connection pool</span>
-        </div>
-      </div>
-
-      <div class="terminal">
-        <div class="terminal-header">
-          <span class="tab-active">Terminal</span>
-          <span>Problems</span>
-          <span>Output</span>
-        </div>
-        <div class="terminal-body">
-          <span class="prompt">alice@dev</span>:<span style="color:#569cd6">~/rust-microservice</span>$ <span class="cmd">cargo build --release</span><br>
-          &nbsp;&nbsp;&nbsp;<span style="color:#569cd6">Compiling</span> rust-microservice v0.1.0<br>
-          &nbsp;&nbsp;&nbsp;<span class="warn">warning:</span> unused import: `serde::Deserialize`<br>
-          &nbsp;&nbsp;&nbsp;<span class="ok">Finished</span> release [optimized] target(s) in 12.34s<br>
-          <span class="prompt">alice@dev</span>:<span style="color:#569cd6">~/rust-microservice</span>$ <span style="animation: blink 1s infinite;">▊</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="statusbar">
-    <span>⎇ main</span>
-    <span>Rust Analyzer ✓</span>
-    <span>UTF-8</span>
-    <span>LF</span>
-    <span>Rust</span>
-    <span style="margin-left: auto;">Ln 23, Col 45</span>
-  </div>
-
-  <style>
-    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
-  </style>
+    // Sync with backend on load
+    (async () => {
+      try {
+        const resp = await fetch(`${GATEWAY}/screen-states`);
+        const states = await resp.json();
+        if (states[USER]) setActive(states[USER]);
+      } catch (e) { console.error('Failed to fetch screen states:', e); }
+    })();
+  </script>
 </body>
 </html>

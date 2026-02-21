@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=720">
+<title>Late Night Coding Vibes 🌙 Lo-fi Beats & Rain - YouTube</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', Arial, sans-serif; background: #0f0f0f; color: #fff; width: 1280px; height: 720px; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* Top bar */
+  .topbar { height: 56px; background: #0f0f0f; display: flex; align-items: center; padding: 0 16px; gap: 16px; border-bottom: 1px solid #272727; }
+  .logo { display: flex; align-items: center; gap: 4px; }
+  .logo .play-icon { width: 28px; height: 20px; background: #f00; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .logo span { font-size: 18px; font-weight: 700; letter-spacing: -1px; }
+  .search-box { flex: 1; max-width: 560px; margin: 0 auto; display: flex; }
+  .search-box input { flex: 1; background: #121212; border: 1px solid #303030; color: #fff; padding: 8px 16px; font-size: 14px; border-radius: 20px 0 0 20px; outline: none; }
+  .search-box button { background: #222; border: 1px solid #303030; border-left: none; padding: 0 20px; border-radius: 0 20px 20px 0; color: #aaa; cursor: pointer; }
+  .user-area { display: flex; align-items: center; gap: 20px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #3ea6ff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+
+  /* Main content */
+  .content { flex: 1; display: flex; overflow: hidden; }
+
+  /* Video area */
+  .video-section { flex: 1; padding: 24px; overflow-y: auto; }
+  .video-player { width: 100%; aspect-ratio: 16/9; max-height: 420px; background: #1a1020; border-radius: 12px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .video-scene { width: 100%; height: 100%; background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 30%, #1a1040 60%, #0d0a1a 100%); position: relative; }
+  .video-scene .moon { position: absolute; top: 40px; right: 80px; width: 60px; height: 60px; background: radial-gradient(circle, #ffe4b5, #ffd700); border-radius: 50%; box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); }
+  .video-scene .stars { position: absolute; top: 20px; left: 100px; color: #fff; font-size: 8px; opacity: 0.6; letter-spacing: 20px; }
+  .video-scene .desk { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 300px; height: 180px; }
+  .video-scene .monitor { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); width: 120px; height: 80px; background: #2a4a8a; border-radius: 4px; border: 3px solid #444; }
+  .video-scene .monitor-glow { position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%); width: 140px; height: 30px; background: radial-gradient(ellipse, rgba(42, 74, 138, 0.4), transparent); }
+  .video-scene .cat { position: absolute; bottom: 80px; right: 60px; font-size: 28px; }
+  .video-scene .plant { position: absolute; bottom: 50px; left: 60px; font-size: 32px; }
+  .video-scene .desk-surface { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 280px; height: 12px; background: #3a2a1a; border-radius: 2px; }
+  .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 68px; height: 48px; background: rgba(255, 0, 0, 0.8); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .play-overlay::after { content: ''; border-left: 18px solid #fff; border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 4px; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: #333; }
+  .progress-fill { width: 35%; height: 100%; background: #f00; }
+
+  .video-title { margin-top: 12px; font-size: 18px; font-weight: 600; }
+  .video-meta { margin-top: 4px; font-size: 13px; color: #aaa; }
+  .channel { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 0; border-bottom: 1px solid #272727; }
+  .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background: #7b2ff2; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .channel-info { flex: 1; }
+  .channel-name { font-size: 14px; font-weight: 600; }
+  .channel-subs { font-size: 12px; color: #aaa; }
+  .subscribe-btn { background: #fff; color: #0f0f0f; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; }
+
+  /* Sidebar recommendations */
+  .recommendations { width: 360px; padding: 24px 24px 24px 0; overflow-y: auto; }
+  .rec-item { display: flex; gap: 8px; margin-bottom: 12px; cursor: pointer; }
+  .rec-thumb { width: 168px; min-width: 168px; height: 94px; background: #272727; border-radius: 8px; position: relative; }
+  .rec-thumb .duration { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: #fff; font-size: 11px; padding: 1px 4px; border-radius: 3px; }
+  .rec-info { flex: 1; }
+  .rec-title { font-size: 13px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .rec-channel { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .rec-views { font-size: 12px; color: #aaa; }
+
+  .rec-thumb.purple { background: linear-gradient(135deg, #2d1b4e, #4a2080); }
+  .rec-thumb.blue { background: linear-gradient(135deg, #1a3050, #2a5080); }
+  .rec-thumb.green { background: linear-gradient(135deg, #1a3a2a, #2a6040); }
+  .rec-thumb.orange { background: linear-gradient(135deg, #3a2a1a, #604020); }
+  .rec-thumb.pink { background: linear-gradient(135deg, #3a1a2a, #602040); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">
+      <div class="play-icon">▶</div>
+      <span>YouTube</span>
+    </div>
+    <div class="search-box">
+      <input type="text" value="devops best practices" readonly>
+      <button>🔍</button>
+    </div>
+    <div class="user-area">
+      <span style="font-size: 20px; color: #aaa;">🔔</span>
+      <div class="avatar">C</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="video-section">
+      <div class="video-player">
+        <div class="video-scene">
+          <div class="stars">✦ &nbsp; ✦ &nbsp; ✦ &nbsp; ✦ &nbsp; ✦</div>
+          <div class="moon"></div>
+          <div class="plant">🌿</div>
+          <div class="cat">🐱</div>
+          <div class="desk">
+            <div class="monitor-glow"></div>
+            <div class="monitor"></div>
+            <div class="desk-surface"></div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div class="video-title">Late Night Coding Vibes 🌙 Lo-fi Beats & Rain</div>
+      <div class="video-meta">3.4M views · Streamed 1 week ago · 1:47:33 / 6:00:00</div>
+
+      <div class="channel">
+        <div class="channel-avatar">D</div>
+        <div class="channel-info">
+          <div class="channel-name">Dev Beats</div>
+          <div class="channel-subs">1.5M subscribers</div>
+        </div>
+        <button class="subscribe-btn">Subscribe</button>
+      </div>
+    </div>
+
+    <div class="recommendations">
+      <div class="rec-item">
+        <div class="rec-thumb purple"><span class="duration">8:15:00</span></div>
+        <div class="rec-info">
+          <div class="rec-title">Midnight Terminal Sessions - Chillhop for DevOps Engineers</div>
+          <div class="rec-channel">Terminal Tunes</div>
+          <div class="rec-views">4.2M views · 3 months ago</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-thumb blue"><span class="duration">1:22:47</span></div>
+        <div class="rec-info">
+          <div class="rec-title">Kubernetes Explained - Full Tutorial for Beginners</div>
+          <div class="rec-channel">TechWorld with Nana</div>
+          <div class="rec-views">6.8M views · 7 months ago</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-thumb green"><span class="duration">4:00:12</span></div>
+        <div class="rec-info">
+          <div class="rec-title">Rain on Server Room - White Noise for Concentration</div>
+          <div class="rec-channel">Noise Machine</div>
+          <div class="rec-views">11M views · 1 year ago</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-thumb orange"><span class="duration">2:38:05</span></div>
+        <div class="rec-info">
+          <div class="rec-title">Docker & CI/CD Pipeline - Complete Guide 2026</div>
+          <div class="rec-channel">DevOps Toolkit</div>
+          <div class="rec-views">2.9M views · 1 month ago</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-thumb pink"><span class="duration">5:45:30</span></div>
+        <div class="rec-info">
+          <div class="rec-title">Space Ambient Mix - Float Through the Cosmos While Deploying</div>
+          <div class="rec-channel">SpaceSounds</div>
+          <div class="rec-views">8.6M views · 9 months ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

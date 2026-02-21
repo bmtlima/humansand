@@ -21,6 +21,13 @@ SCREEN_URLS = {
     "Charlie": os.environ.get("SCREEN_CHARLIE_URL", "http://screen-charlie:80"),
 }
 
+# Default states matching existing screens
+_screen_states = {
+    "Alice": "focus_work",
+    "Bob": "available",
+    "Charlie": "communication",
+}
+
 _browser: Browser | None = None
 _playwright = None
 
@@ -45,15 +52,32 @@ async def shutdown():
         await _playwright.stop()
 
 
+@app.post("/set-screen/{user_name}")
+async def set_screen(user_name: str, body: dict):
+    """Switch a user's screen to a different activity state."""
+    state = body.get("state", "available")
+    _screen_states[user_name] = state
+    return {"ok": True, "user_name": user_name, "state": state}
+
+
+@app.get("/screen-states")
+async def get_screen_states():
+    """Get current screen state for all users."""
+    return _screen_states
+
+
 @app.post("/screenshot")
 async def take_screenshot(req: ScreenshotRequest):
     url = SCREEN_URLS.get(req.user_name)
     if not url:
         return {"error": f"Unknown user: {req.user_name}"}
 
+    state = _screen_states.get(req.user_name, "available")
+    target_url = f"{url}/{state}.html"
+
     page = await _browser.new_page(viewport={"width": 1280, "height": 720})
     try:
-        await page.goto(url, wait_until="networkidle", timeout=10000)
+        await page.goto(target_url, wait_until="networkidle", timeout=10000)
         png_bytes = await page.screenshot(type="png")
     finally:
         await page.close()

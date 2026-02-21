@@ -208,6 +208,25 @@ async def update_agent_data(user_name: str, body: AgentDataUpdateRequest):
     return {"ok": True}
 
 
+@app.post("/set-screen/{user_name}")
+async def set_screen(user_name: str, body: dict):
+    """Switch a user's screen to a different activity state."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{SCREENSHOT_SERVICE_URL}/set-screen/{user_name}",
+            json=body, timeout=10,
+        )
+        return resp.json()
+
+
+@app.get("/screen-states")
+async def get_screen_states():
+    """Get current screen state for all users."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{SCREENSHOT_SERVICE_URL}/screen-states", timeout=10)
+        return resp.json()
+
+
 @app.get("/screenshots/{filename}")
 async def proxy_screenshot(filename: str):
     """Proxy screenshot requests to the screenshot service."""
