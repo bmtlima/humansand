@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from openai import AsyncOpenAI
+import anthropic
 
 from mock_data import USER_MOCK_DATA
 from tools import TOOL_SCHEMAS, execute_tool
@@ -24,12 +24,11 @@ PORT = args.port
 
 app = FastAPI(title=f"{USER_NAME}'s Agent")
 
-client = AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+client = anthropic.AsyncAnthropic(
+    api_key=os.getenv("ANTHROPIC_API_KEY"),
 )
 
-MODEL = "minimax/minimax-m2.5"
+MODEL = "claude-sonnet-4-6"
 
 SYSTEM_PROMPT = f"""You are a personal AI assistant for {USER_NAME}. You help your user by answering
 questions, checking their schedule, and communicating with other users' agents.
@@ -44,6 +43,59 @@ matching agent to check availability, then synthesize the results.
 
 Be concise and helpful. When reporting results, include specific details about
 what you found (who is available, what they're doing, their skills)."""
+
+# Anthropic tool format (different from OpenAI)
+ANTHROPIC_TOOLS = [
+    {
+        "name": "search_registry",
+        "description": "Search the global registry for users matching a role and/or skill.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "description": "Job role to filter by, e.g. 'Software Engineer'",
+                },
+                "skill": {
+                    "type": "string",
+                    "description": "Skill to filter by, e.g. 'Rust'",
+                },
+            },
+        },
+    },
+    {
+        "name": "message_agent",
+        "description": "Send a message to another user's agent to check their availability or ask a question.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_url": {
+                    "type": "string",
+                    "description": "The URL of the target agent",
+                },
+                "user_name": {
+                    "type": "string",
+                    "description": "The name of the user whose agent you're contacting",
+                },
+                "intent": {
+                    "type": "string",
+                    "description": "The intent of the message, e.g. 'check_availability'",
+                },
+            },
+            "required": ["agent_url", "user_name", "intent"],
+        },
+    },
+    {
+        "name": "get_calendar_events",
+        "description": "Get your owner's upcoming calendar events to determine their schedule.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "get_current_activity",
+        "description": "Get your owner's current screen/application activity.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+]
 
 
 # --- Request/Response models ---
@@ -70,8 +122,8 @@ def health():
 @app.post("/chat")
 async def chat(req: ChatRequest):
     async def event_stream():
-        # Build message history
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        # Build message history (Anthropic uses separate system param)
+        messages = []
         for msg in req.history:
             messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
         messages.append({"role": "user", "content": req.message})
@@ -79,31 +131,27 @@ async def chat(req: ChatRequest):
         # Agentic tool-calling loop
         max_iterations = 10
         for _ in range(max_iterations):
-            response = await client.chat.completions.create(
+            response = await client.messages.create(
                 model=MODEL,
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
                 messages=messages,
-                tools=TOOL_SCHEMAS,
-                tool_choice="auto",
+                tools=ANTHROPIC_TOOLS,
             )
 
-            choice = response.choices[0]
+            # Check if the model wants to use tools
+            if response.stop_reason == "tool_use":
+                # Append the full assistant response (may contain text + tool_use blocks)
+                messages.append({"role": "assistant", "content": response.content})
 
-            if choice.finish_reason == "tool_calls" or (
-                choice.message.tool_calls and len(choice.message.tool_calls) > 0
-            ):
-                # Append assistant message with tool calls
-                messages.append(choice.message.model_dump())
+                # Process each tool use block
+                tool_results = []
+                for block in response.content:
+                    if block.type != "tool_use":
+                        continue
 
-                for tool_call in choice.message.tool_calls:
-                    fn_name = tool_call.function.name
-                    raw_args = tool_call.function.arguments
-                    if isinstance(raw_args, str):
-                        try:
-                            fn_args = json.loads(raw_args)
-                        except json.JSONDecodeError:
-                            fn_args = {}
-                    else:
-                        fn_args = raw_args
+                    fn_name = block.name
+                    fn_args = block.input
 
                     result = await execute_tool(fn_name, fn_args, USER_NAME)
 
@@ -115,13 +163,19 @@ async def chat(req: ChatRequest):
                     }
                     yield f"data: {json.dumps(step)}\n\n"
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
                         "content": result,
                     })
+
+                messages.append({"role": "user", "content": tool_results})
             else:
-                content = choice.message.content or ""
+                # Extract text from the response
+                content = ""
+                for block in response.content:
+                    if hasattr(block, "text"):
+                        content += block.text
                 yield f"data: {json.dumps({'type': 'final', 'content': content})}\n\n"
                 return
 

@@ -18,9 +18,9 @@ npm run dev          # http://localhost:3000
 
 ## Tech Stack
 
-- **Backend**: Python 3 (FastAPI, uvicorn, httpx, openai SDK via OpenRouter)
+- **Backend**: Python 3 (FastAPI, uvicorn, httpx, anthropic SDK)
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui
-- **LLM**: `minimax/minimax-m2.5` via OpenRouter
+- **LLM**: `claude-sonnet-4-6` via Anthropic API
 - **Streaming**: SSE (Server-Sent Events) for real-time reasoning steps
 
 **Important**: Use `python3` / `pip3` — the system `python` is Python 2.7.
@@ -80,5 +80,5 @@ frontend/src/
 
 ## Environment Variables
 
-- `backend/.env`: `OPENROUTER_API_KEY`
+- `backend/.env`: `ANTHROPIC_API_KEY`
 - `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:8080`

@@ -1,1 +1,1 @@
-testing
+- persist conversation memory so that it stops erasing after we restart backend
