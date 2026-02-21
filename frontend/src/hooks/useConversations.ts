@@ -5,6 +5,7 @@ import { ConversationSummary } from "@/lib/types";
 import {
   listConversations,
   deleteConversation as apiDeleteConversation,
+  renameConversation as apiRenameConversation,
 } from "@/lib/api";
 
 export function useConversations() {
@@ -35,9 +36,23 @@ export function useConversations() {
     []
   );
 
+  const renameConversation = useCallback(
+    async (id: string, title: string) => {
+      try {
+        await apiRenameConversation(id, title);
+        setConversations((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, title } : c))
+        );
+      } catch (err) {
+        console.error("Failed to rename conversation:", err);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { conversations, isLoading, refresh, deleteConversation };
+  return { conversations, isLoading, refresh, deleteConversation, renameConversation };
 }

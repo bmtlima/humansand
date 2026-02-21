@@ -125,6 +125,16 @@ def get_conversation(conv_id: str):
     return conv
 
 
+@app.patch("/conversations/{conv_id}")
+def rename_conversation(conv_id: str, body: dict):
+    title = body.get("title")
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    if not store.rename(conv_id, title):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"ok": True}
+
+
 @app.delete("/conversations/{conv_id}")
 def delete_conversation(conv_id: str):
     if not store.delete(conv_id):

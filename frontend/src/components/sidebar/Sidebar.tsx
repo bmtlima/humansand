@@ -12,6 +12,7 @@ interface SidebarProps {
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
+  onRenameConversation: (id: string, title: string) => void;
 }
 
 export function Sidebar({
@@ -20,6 +21,7 @@ export function Sidebar({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  onRenameConversation,
 }: SidebarProps) {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-muted/30">
@@ -39,6 +41,7 @@ export function Sidebar({
               isActive={conv.id === activeConversationId}
               onClick={() => onSelectConversation(conv.id)}
               onDelete={() => onDeleteConversation(conv.id)}
+              onRename={(title) => onRenameConversation(conv.id, title)}
             />
           ))}
           {conversations.length === 0 && (

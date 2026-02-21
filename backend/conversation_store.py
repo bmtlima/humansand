@@ -51,6 +51,14 @@ class ConversationStore:
             text = message.get("content", "")
             conv["title"] = text[:50] + ("..." if len(text) > 50 else "")
 
+    def rename(self, conv_id: str, title: str) -> bool:
+        conv = self._conversations.get(conv_id)
+        if not conv:
+            return False
+        conv["title"] = title
+        conv["updated_at"] = datetime.now(timezone.utc).isoformat()
+        return True
+
     def delete(self, conv_id: str) -> bool:
         if conv_id in self._conversations:
             del self._conversations[conv_id]

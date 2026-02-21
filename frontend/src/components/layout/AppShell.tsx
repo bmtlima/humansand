@@ -12,7 +12,7 @@ const AGENT = "Alice";
 export function AppShell() {
   const { messages, conversationId, isLoading, isStreaming, send, loadMessages, reset } =
     useChat(AGENT);
-  const { conversations, refresh, deleteConversation } = useConversations();
+  const { conversations, refresh, deleteConversation, renameConversation } = useConversations();
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -58,6 +58,7 @@ export function AppShell() {
         onNewChat={handleNewChat}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
+        onRenameConversation={renameConversation}
       />
 
       <div className="flex flex-1 flex-col">

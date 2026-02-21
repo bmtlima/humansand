@@ -98,6 +98,15 @@ export async function getConversation(id: string): Promise<Conversation> {
   return res.json();
 }
 
+export async function renameConversation(id: string, title: string): Promise<void> {
+  const res = await fetch(`${API_URL}/conversations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) throw new Error(`Failed to rename conversation: ${res.status}`);
+}
+
 export async function deleteConversation(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/conversations/${id}`, {
     method: "DELETE",
