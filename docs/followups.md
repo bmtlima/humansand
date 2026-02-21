@@ -1,5 +1,6 @@
 - Interface for visualizing communication
 - Screenshot to see their current availability
-- Openclaw for it
+- Openclaw for it (or just screenshot - lowkey need working VMs first though)
 - Feature for each agent to ping their user
 - Show reasoning while you are waiting
+- start a new chat on the sidebar right after you click on 'New Chat'
