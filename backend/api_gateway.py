@@ -12,6 +12,17 @@ from conversation_store import store
 
 app = FastAPI(title="API Gateway")
 
+
+@app.on_event("startup")
+async def startup():
+    await store.initialize()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await store.close()
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,14 +44,14 @@ REGISTRY_URL = "http://localhost:8000"
 async def chat(req: ChatMessageRequest):
     # Resolve or create conversation
     conv_id = req.conversation_id
-    if not conv_id or not store.get(conv_id):
-        conv_id = store.create(req.agent)
+    if not conv_id or not await store.get(conv_id):
+        conv_id = await store.create(req.agent)
 
     # Store user message
-    store.add_message(conv_id, {"role": "user", "content": req.message})
+    await store.add_message(conv_id, {"role": "user", "content": req.message})
 
     # Get conversation history for context
-    history = store.get_history(conv_id)
+    history = await store.get_history(conv_id)
     history = history[:-1] if history else []
 
     # Forward to agent
@@ -107,7 +118,7 @@ async def chat(req: ChatMessageRequest):
             }
             for s in reasoning_steps
         ]
-        store.add_message(conv_id, {
+        await store.add_message(conv_id, {
             "role": "assistant",
             "content": assistant_content,
             "reasoning_steps": stored_steps,
@@ -117,28 +128,28 @@ async def chat(req: ChatMessageRequest):
 
 
 @app.get("/conversations")
-def list_conversations():
-    return store.list_all()
+async def list_conversations():
+    return await store.list_all()
 
 
 @app.get("/conversations/{conv_id}")
-def get_conversation(conv_id: str):
-    conv = store.get(conv_id)
+async def get_conversation(conv_id: str):
+    conv = await store.get(conv_id)
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return conv
 
 
 @app.patch("/conversations/{conv_id}")
-def rename_conversation(conv_id: str, body: RenameRequest):
-    if not store.rename(conv_id, body.title):
+async def rename_conversation(conv_id: str, body: RenameRequest):
+    if not await store.rename(conv_id, body.title):
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"ok": True}
 
 
 @app.delete("/conversations/{conv_id}")
-def delete_conversation(conv_id: str):
-    if not store.delete(conv_id):
+async def delete_conversation(conv_id: str):
+    if not await store.delete(conv_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"ok": True}
 
