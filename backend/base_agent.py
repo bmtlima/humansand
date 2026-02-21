@@ -4,6 +4,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 
@@ -68,75 +69,67 @@ def health():
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    reasoning_steps = []
+    async def event_stream():
+        # Build message history
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for msg in req.history:
+            messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+        messages.append({"role": "user", "content": req.message})
 
-    # Build message history
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    for msg in req.history:
-        messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
-    messages.append({"role": "user", "content": req.message})
+        # Agentic tool-calling loop
+        max_iterations = 10
+        for _ in range(max_iterations):
+            response = await client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                tools=TOOL_SCHEMAS,
+                tool_choice="auto",
+            )
 
-    # Agentic tool-calling loop
-    max_iterations = 10
-    for _ in range(max_iterations):
-        response = await client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            tools=TOOL_SCHEMAS,
-            tool_choice="auto",
-        )
+            choice = response.choices[0]
 
-        choice = response.choices[0]
+            if choice.finish_reason == "tool_calls" or (
+                choice.message.tool_calls and len(choice.message.tool_calls) > 0
+            ):
+                # Append assistant message with tool calls
+                messages.append(choice.message.model_dump())
 
-        if choice.finish_reason == "tool_calls" or (
-            choice.message.tool_calls and len(choice.message.tool_calls) > 0
-        ):
-            # Append assistant message with tool calls
-            messages.append(choice.message.model_dump())
+                for tool_call in choice.message.tool_calls:
+                    fn_name = tool_call.function.name
+                    raw_args = tool_call.function.arguments
+                    if isinstance(raw_args, str):
+                        try:
+                            fn_args = json.loads(raw_args)
+                        except json.JSONDecodeError:
+                            fn_args = {}
+                    else:
+                        fn_args = raw_args
 
-            for tool_call in choice.message.tool_calls:
-                fn_name = tool_call.function.name
-                # Handle args as string or dict
-                raw_args = tool_call.function.arguments
-                if isinstance(raw_args, str):
-                    try:
-                        fn_args = json.loads(raw_args)
-                    except json.JSONDecodeError:
-                        fn_args = {}
-                else:
-                    fn_args = raw_args
+                    result = await execute_tool(fn_name, fn_args, USER_NAME)
 
-                # Execute the tool
-                result = await execute_tool(fn_name, fn_args, USER_NAME)
+                    step = {
+                        "type": "reasoning_step",
+                        "tool_name": fn_name,
+                        "summary": _make_summary(fn_name, fn_args),
+                        "result": result[:500],
+                    }
+                    yield f"data: {json.dumps(step)}\n\n"
 
-                # Record reasoning step
-                reasoning_steps.append({
-                    "type": "tool_call",
-                    "tool_name": fn_name,
-                    "args": fn_args,
-                    "summary": _make_summary(fn_name, fn_args),
-                    "result": result[:500],  # truncate long results
-                })
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": result,
+                    })
+            else:
+                content = choice.message.content or ""
+                yield f"data: {json.dumps({'type': 'final', 'content': content})}\n\n"
+                return
 
-                # Append tool result to messages
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": result,
-                })
-        else:
-            # Final text response
-            content = choice.message.content or ""
-            return {
-                "content": content,
-                "reasoning_steps": reasoning_steps,
-            }
+        # Safety: if we hit max iterations
+        fallback = {"type": "final", "content": "I wasn't able to complete the request within the allowed steps."}
+        yield f"data: {json.dumps(fallback)}\n\n"
 
-    # Safety: if we hit max iterations
-    return {
-        "content": "I wasn't able to complete the request within the allowed steps.",
-        "reasoning_steps": reasoning_steps,
-    }
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/agent-message")

@@ -10,7 +10,7 @@ import { getConversation } from "@/lib/api";
 const AGENT = "Alice";
 
 export function AppShell() {
-  const { messages, conversationId, isLoading, send, loadMessages, reset } =
+  const { messages, conversationId, isLoading, isStreaming, send, loadMessages, reset } =
     useChat(AGENT);
   const { conversations, refresh, deleteConversation } = useConversations();
 
@@ -64,6 +64,7 @@ export function AppShell() {
         <ChatArea
           messages={messages}
           isLoading={isLoading}
+          isStreaming={isStreaming}
           onSend={handleSend}
           agent={AGENT}
         />

@@ -3,4 +3,6 @@
 - Openclaw for it (or just screenshot - lowkey need working VMs first though)
 - Feature for each agent to ping their user
 - Show reasoning while you are waiting
-- start a new chat on the sidebar right after you click on 'New Chat'
+- Fix chat title naming
+- have slack MCP tool for sending messages
+    -> only do this with permission

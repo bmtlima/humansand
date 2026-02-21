@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ReasoningStep } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, ChevronDown, Wrench } from "lucide-react";
 
 interface ReasoningTraceProps {
   steps: ReasoningStep[];
+  isStreaming?: boolean;
 }
 
-export function ReasoningTrace({ steps }: ReasoningTraceProps) {
+export function ReasoningTrace({ steps, isStreaming = false }: ReasoningTraceProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Auto-expand while streaming
+  useEffect(() => {
+    if (isStreaming && steps.length > 0) {
+      setIsOpen(true);
+    }
+  }, [isStreaming, steps.length]);
 
   if (!steps || steps.length === 0) return null;
 
@@ -28,6 +36,7 @@ export function ReasoningTrace({ steps }: ReasoningTraceProps) {
         <Wrench className="h-3 w-3" />
         <span>
           {steps.length} tool {steps.length === 1 ? "call" : "calls"}
+          {isStreaming && "..."}
         </span>
       </button>
 
@@ -40,6 +49,9 @@ export function ReasoningTrace({ steps }: ReasoningTraceProps) {
                   {step.tool_name}
                 </Badge>
                 <span className="text-muted-foreground">{step.summary}</span>
+                {isStreaming && i === steps.length - 1 && (
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                )}
               </div>
               {step.result && (
                 <pre className="mt-1 rounded bg-muted/50 p-2 text-[11px] text-muted-foreground overflow-x-auto max-h-32 overflow-y-auto">

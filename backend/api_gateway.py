@@ -1,6 +1,9 @@
+import json
+
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep
 from conversation_store import store
@@ -22,7 +25,7 @@ AGENT_URLS = {
 }
 
 
-@app.post("/chat", response_model=ChatMessageResponse)
+@app.post("/chat")
 async def chat(req: ChatMessageRequest):
     # Resolve or create conversation
     conv_id = req.conversation_id
@@ -34,7 +37,6 @@ async def chat(req: ChatMessageRequest):
 
     # Get conversation history for context
     history = store.get_history(conv_id)
-    # Remove the last message (we send it separately as `message`)
     history = history[:-1] if history else []
 
     # Forward to agent
@@ -42,45 +44,72 @@ async def chat(req: ChatMessageRequest):
     if not agent_url:
         raise HTTPException(status_code=400, detail=f"Unknown agent: {req.agent}")
 
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.post(
-                f"{agent_url}/chat",
-                json={"message": req.message, "history": history},
-                timeout=60,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=f"Agent error: {str(e)}")
+    async def relay_stream():
+        reasoning_steps: list[dict] = []
+        assistant_content = ""
 
-    # Parse reasoning steps
-    steps = [
-        ReasoningStep(
-            type=s.get("type", "tool_call"),
-            tool_name=s.get("tool_name", ""),
-            summary=s.get("summary", ""),
-            result=s.get("result", ""),
-        )
-        for s in data.get("reasoning_steps", [])
-    ]
+        async with httpx.AsyncClient() as client:
+            try:
+                async with client.stream(
+                    "POST",
+                    f"{agent_url}/chat",
+                    json={"message": req.message, "history": history},
+                    timeout=60,
+                ) as resp:
+                    resp.raise_for_status()
+                    buffer = ""
+                    async for chunk in resp.aiter_text():
+                        buffer += chunk
+                        # Process complete SSE lines
+                        while "\n\n" in buffer:
+                            line, buffer = buffer.split("\n\n", 1)
+                            line = line.strip()
+                            if not line.startswith("data: "):
+                                continue
+                            payload = line[6:]  # strip "data: "
+                            try:
+                                event = json.loads(payload)
+                            except json.JSONDecodeError:
+                                continue
 
-    assistant_content = data.get("content", "")
+                            if event.get("type") == "reasoning_step":
+                                reasoning_steps.append(event)
+                                yield f"data: {json.dumps(event)}\n\n"
+                            elif event.get("type") == "final":
+                                assistant_content = event.get("content", "")
+                                final_event = {
+                                    "type": "final",
+                                    "conversation_id": conv_id,
+                                    "content": assistant_content,
+                                }
+                                yield f"data: {json.dumps(final_event)}\n\n"
 
-    # Store assistant message
-    store.add_message(conv_id, {
-        "role": "assistant",
-        "content": assistant_content,
-        "reasoning_steps": [s.model_dump() for s in steps],
-    })
+            except httpx.HTTPError as e:
+                error_event = {
+                    "type": "final",
+                    "conversation_id": conv_id,
+                    "content": f"Agent error: {str(e)}",
+                }
+                yield f"data: {json.dumps(error_event)}\n\n"
+                assistant_content = error_event["content"]
 
-    return ChatMessageResponse(
-        conversation_id=conv_id,
-        message=AssistantMessage(
-            content=assistant_content,
-            reasoning_steps=steps,
-        ),
-    )
+        # Store the complete assistant message after stream ends
+        stored_steps = [
+            {
+                "type": "tool_call",
+                "tool_name": s.get("tool_name", ""),
+                "summary": s.get("summary", ""),
+                "result": s.get("result", ""),
+            }
+            for s in reasoning_steps
+        ]
+        store.add_message(conv_id, {
+            "role": "assistant",
+            "content": assistant_content,
+            "reasoning_steps": stored_steps,
+        })
+
+    return StreamingResponse(relay_stream(), media_type="text/event-stream")
 
 
 @app.get("/conversations")

@@ -3,14 +3,14 @@
 import { useEffect, useRef } from "react";
 import { Message } from "@/lib/types";
 import { MessageBubble } from "./MessageBubble";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  isStreaming?: boolean;
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({ messages, isLoading, isStreaming = false }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,19 +33,18 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="mx-auto max-w-3xl space-y-4">
-        {messages.map((msg, i) => (
-          <MessageBubble key={i} message={msg} />
-        ))}
+        {messages.map((msg, i) => {
+          const isLastMessage = i === messages.length - 1;
+          const isStreamingMessage = isLastMessage && isStreaming && msg.role === "assistant";
 
-        {isLoading && (
-          <div className="flex gap-3">
-            <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-          </div>
-        )}
+          return (
+            <MessageBubble
+              key={i}
+              message={msg}
+              isStreaming={isStreamingMessage}
+            />
+          );
+        })}
 
         <div ref={bottomRef} />
       </div>

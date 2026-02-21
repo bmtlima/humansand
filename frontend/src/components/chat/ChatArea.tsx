@@ -7,11 +7,12 @@ import { Message } from "@/lib/types";
 interface ChatAreaProps {
   messages: Message[];
   isLoading: boolean;
+  isStreaming?: boolean;
   onSend: (message: string) => void;
   agent: string;
 }
 
-export function ChatArea({ messages, isLoading, onSend, agent }: ChatAreaProps) {
+export function ChatArea({ messages, isLoading, isStreaming = false, onSend, agent }: ChatAreaProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b px-4 py-3">
@@ -21,7 +22,7 @@ export function ChatArea({ messages, isLoading, onSend, agent }: ChatAreaProps) 
         </div>
       </div>
 
-      <MessageList messages={messages} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading} isStreaming={isStreaming} />
       <ChatInput onSend={onSend} disabled={isLoading} />
     </div>
   );
