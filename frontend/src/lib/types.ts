@@ -32,3 +32,20 @@ export interface ChatResponse {
   conversation_id: string;
   message: Message;
 }
+
+export interface CalendarEvent {
+  event: string;
+  time: string;
+  duration: string;
+}
+
+export interface Profile {
+  name: string;
+  role: string;
+  skills: string[];
+}
+
+export interface AgentData {
+  calendar: CalendarEvent[];
+  profile: Profile;
+}

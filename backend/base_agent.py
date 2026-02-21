@@ -173,6 +173,28 @@ def _make_summary(tool_name: str, args: dict) -> str:
     return f"Calling {tool_name}..."
 
 
+@app.get("/agent-data")
+def get_agent_data():
+    data = USER_MOCK_DATA.get(USER_NAME, {})
+    return {"calendar": data.get("calendar", []), "activity": data.get("activity", {})}
+
+
+class AgentDataUpdate(BaseModel):
+    calendar: list | None = None
+    activity: dict | None = None
+
+
+@app.put("/agent-data")
+def update_agent_data(req: AgentDataUpdate):
+    if USER_NAME not in USER_MOCK_DATA:
+        USER_MOCK_DATA[USER_NAME] = {}
+    if req.calendar is not None:
+        USER_MOCK_DATA[USER_NAME]["calendar"] = req.calendar
+    if req.activity is not None:
+        USER_MOCK_DATA[USER_NAME]["activity"] = req.activity
+    return {"ok": True}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=PORT)

@@ -1,4 +1,4 @@
-import { ChatResponse, Conversation, ConversationSummary, ReasoningStep } from "./types";
+import { AgentData, ChatResponse, Conversation, ConversationSummary, ReasoningStep } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -112,4 +112,22 @@ export async function deleteConversation(id: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Failed to delete conversation: ${res.status}`);
+}
+
+export async function getAgentData(userName: string): Promise<AgentData> {
+  const res = await fetch(`${API_URL}/agent-data/${userName}`);
+  if (!res.ok) throw new Error(`Failed to get agent data: ${res.status}`);
+  return res.json();
+}
+
+export async function updateAgentData(
+  userName: string,
+  data: { profile: Partial<AgentData["profile"]> }
+): Promise<void> {
+  const res = await fetch(`${API_URL}/agent-data/${userName}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update agent data: ${res.status}`);
 }

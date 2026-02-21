@@ -5,6 +5,8 @@ import { NewChatButton } from "./NewChatButton";
 import { ConversationItem } from "./ConversationItem";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Database } from "lucide-react";
 
 interface SidebarProps {
   conversations: ConversationSummary[];
@@ -51,6 +53,19 @@ export function Sidebar({
           )}
         </div>
       </ScrollArea>
+
+      <Separator />
+
+      <div className="p-3">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-sm"
+          onClick={() => window.open("/personal-info", "_blank")}
+        >
+          <Database className="h-4 w-4" />
+          Personal Information
+        </Button>
+      </div>
     </div>
   );
 }

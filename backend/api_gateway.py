@@ -1,7 +1,9 @@
+import asyncio
 import json
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -23,6 +25,8 @@ AGENT_URLS = {
     "Bob": "http://localhost:8002",
     "Charlie": "http://localhost:8003",
 }
+
+REGISTRY_URL = "http://localhost:8000"
 
 
 @app.post("/chat")
@@ -136,6 +140,58 @@ def rename_conversation(conv_id: str, body: RenameRequest):
 def delete_conversation(conv_id: str):
     if not store.delete(conv_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"ok": True}
+
+
+@app.get("/agent-data/{user_name}")
+async def get_agent_data(user_name: str):
+    agent_url = AGENT_URLS.get(user_name)
+    if not agent_url:
+        raise HTTPException(status_code=400, detail=f"Unknown agent: {user_name}")
+
+    async with httpx.AsyncClient() as client:
+        agent_resp, registry_resp = await asyncio.gather(
+            client.get(f"{agent_url}/agent-data", timeout=10),
+            client.get(f"{REGISTRY_URL}/users/{user_name}", timeout=10),
+        )
+    agent_data = agent_resp.json()
+    profile = registry_resp.json()
+    return {
+        "calendar": agent_data["calendar"],
+        "activity": agent_data["activity"],
+        "profile": {
+            "name": profile["name"],
+            "role": profile["role"],
+            "skills": profile["skills"],
+        },
+    }
+
+
+class AgentDataUpdateRequest(BaseModel):
+    calendar: list | None = None
+    activity: dict | None = None
+    profile: dict | None = None
+
+
+@app.put("/agent-data/{user_name}")
+async def update_agent_data(user_name: str, body: AgentDataUpdateRequest):
+    agent_url = AGENT_URLS.get(user_name)
+    if not agent_url:
+        raise HTTPException(status_code=400, detail=f"Unknown agent: {user_name}")
+
+    async with httpx.AsyncClient() as client:
+        tasks = []
+        if body.calendar is not None or body.activity is not None:
+            agent_payload = {}
+            if body.calendar is not None:
+                agent_payload["calendar"] = body.calendar
+            if body.activity is not None:
+                agent_payload["activity"] = body.activity
+            tasks.append(client.put(f"{agent_url}/agent-data", json=agent_payload, timeout=10))
+        if body.profile is not None:
+            tasks.append(client.patch(f"{REGISTRY_URL}/users/{user_name}", json=body.profile, timeout=10))
+        if tasks:
+            await asyncio.gather(*tasks)
     return {"ok": True}
 
 
