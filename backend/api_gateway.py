@@ -1,5 +1,6 @@
 import asyncio
 import json
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -10,17 +11,15 @@ from fastapi.responses import StreamingResponse
 from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep, RenameRequest
 from conversation_store import store
 
-app = FastAPI(title="API Gateway")
 
-
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app):
     await store.initialize()
-
-
-@app.on_event("shutdown")
-async def shutdown():
+    yield
     await store.close()
+
+
+app = FastAPI(title="API Gateway", lifespan=lifespan)
 
 
 app.add_middleware(

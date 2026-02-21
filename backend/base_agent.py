@@ -36,7 +36,7 @@ questions, checking their schedule, and communicating with other users' agents.
 You have access to tools to:
 - Search a global registry of users by role/skill
 - Message other users' agents to check their availability
-- Check your own user's calendar and current activity
+- Check your own user's calendar
 
 When asked to find someone, search the registry first, then message each
 matching agent to check availability, then synthesize the results.
@@ -88,11 +88,6 @@ ANTHROPIC_TOOLS = [
     {
         "name": "get_calendar_events",
         "description": "Get your owner's upcoming calendar events to determine their schedule.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "get_current_activity",
-        "description": "Get your owner's current screen/application activity.",
         "input_schema": {"type": "object", "properties": {}},
     },
 ]
@@ -222,8 +217,6 @@ def _make_summary(tool_name: str, args: dict) -> str:
         return f"Contacting {args.get('user_name', 'unknown')}'s agent..."
     elif tool_name == "get_calendar_events":
         return "Checking calendar events..."
-    elif tool_name == "get_current_activity":
-        return "Checking current activity..."
     return f"Calling {tool_name}..."
 
 

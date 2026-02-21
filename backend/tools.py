@@ -58,14 +58,6 @@ TOOL_SCHEMAS = [
             "parameters": {"type": "object", "properties": {}},
         },
     },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_current_activity",
-            "description": "Get your owner's current screen/application activity.",
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
 ]
 
 
@@ -77,8 +69,6 @@ async def execute_tool(tool_name: str, args: dict, owner_name: str) -> str:
         return await message_agent(args, owner_name)
     elif tool_name == "get_calendar_events":
         return get_calendar_events(owner_name)
-    elif tool_name == "get_current_activity":
-        return get_current_activity(owner_name)
     else:
         return json.dumps({"error": f"Unknown tool: {tool_name}"})
 
@@ -118,7 +108,3 @@ def get_calendar_events(owner_name: str) -> str:
     return json.dumps(events)
 
 
-def get_current_activity(owner_name: str) -> str:
-    data = USER_MOCK_DATA.get(owner_name, {})
-    activity = data.get("activity", {})
-    return json.dumps(activity)
