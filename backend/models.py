@@ -26,6 +26,10 @@ class ChatMessageResponse(BaseModel):
     message: AssistantMessage
 
 
+class RenameRequest(BaseModel):
+    title: str
+
+
 class ConversationSummary(BaseModel):
     id: str
     title: str

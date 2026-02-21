@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep
+from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep, RenameRequest
 from conversation_store import store
 
 app = FastAPI(title="API Gateway")
@@ -126,11 +126,8 @@ def get_conversation(conv_id: str):
 
 
 @app.patch("/conversations/{conv_id}")
-def rename_conversation(conv_id: str, body: dict):
-    title = body.get("title")
-    if not title:
-        raise HTTPException(status_code=400, detail="title is required")
-    if not store.rename(conv_id, title):
+def rename_conversation(conv_id: str, body: RenameRequest):
+    if not store.rename(conv_id, body.title):
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"ok": True}
 

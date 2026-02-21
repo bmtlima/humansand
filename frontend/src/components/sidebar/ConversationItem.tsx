@@ -78,16 +78,10 @@ export function ConversationItem({
             className="w-full rounded border bg-background px-1 py-0.5 text-sm font-medium outline-none focus:ring-1 focus:ring-ring"
           />
         ) : (
-          <p className="truncate pr-6 font-medium">{conversation.title}</p>
+          <p className="truncate font-medium">{conversation.title}</p>
         )}
       </div>
-
-      {/* Absolutely positioned on the right so ScrollArea's display:table can't push it offscreen */}
-      <div
-        className={`absolute right-1 top-1/2 -translate-y-1/2 ${
-          menuOpen ? "block" : "hidden group-hover:block"
-        }`}
-      >
+      <div className={`shrink-0 ${menuOpen ? "block" : "hidden group-hover:block"}`}>
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
@@ -97,7 +91,7 @@ export function ConversationItem({
               <MoreVertical className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="bottom">
+          <DropdownMenuContent align="end" side="bottom">
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
