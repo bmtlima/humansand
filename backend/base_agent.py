@@ -224,11 +224,16 @@ async def agent_message(req: AgentMessageRequest):
         analysis = await _analyze_screenshot(screenshot_base64)
     else:
         # Fallback to mock data if screenshot unavailable
-        activity = USER_MOCK_DATA.get(USER_NAME, {}).get("activity", {})
-        analysis = {
-            "summary": f"{activity.get('status', 'Unknown')} - {activity.get('detail', '')}",
-            "is_busy": activity.get("status", "").lower() not in ["idle", "available"],
-        }
+        mock_status = USER_MOCK_DATA.get(USER_NAME, {}).get("activity", {}).get("status", "").lower()
+        if mock_status in ["idle", "available"]:
+            analysis = {"status": "available"}
+        elif "meeting" in mock_status or "zoom" in mock_status:
+            analysis = {"status": "in_meeting"}
+        else:
+            analysis = {"status": "focus_work"}
+
+    activity_status = analysis["status"]
+    is_busy = activity_status not in ["available"]
 
     # 3. Get calendar from mock data (still useful)
     calendar = USER_MOCK_DATA.get(USER_NAME, {}).get("calendar", [])
@@ -236,20 +241,45 @@ async def agent_message(req: AgentMessageRequest):
 
     return {
         "user_name": USER_NAME,
-        "status": "busy" if analysis["is_busy"] else "available",
-        "current_activity": analysis["summary"],
+        "status": activity_status,
+        "status_description": ACTIVITY_STATUSES.get(activity_status, ""),
         "upcoming": f"{upcoming['event']} {upcoming['time']}" if upcoming else "Nothing scheduled",
-        "message": f"{USER_NAME} {'is currently busy' if analysis['is_busy'] else 'appears to be available'}.",
-        "screenshot_url": screenshot_url,
+        "message": f"{USER_NAME} is currently: {activity_status}.",
     }
 
 
+ACTIVITY_STATUSES = {
+    "available": "Idle or passively consuming content (e.g. listening to music, watching a lofi stream). Not doing focused work.",
+    "focus_work": "Actively working — coding, writing, designing, or other productive focused tasks in a work application.",
+    "in_meeting": "On a video call or in a meeting application (e.g. Zoom, Google Meet, Teams).",
+    "presenting": "Actively screen sharing or giving a presentation.",
+    "communication": "Engaged in text communication — messaging on Slack, Discord, email, etc.",
+    "learning": "Reading documentation, tutorials, articles, or watching educational content.",
+    "administration": "Managing files, scheduling calendar events, system settings, or other administrative tasks.",
+    "away": "Screen is locked, screensaver is active, or display is blank/off.",
+}
+
+VISION_PROMPT = """Classify this person's computer activity into exactly ONE of these statuses. Return ONLY a JSON object with a single "status" field.
+
+Statuses:
+""" + "\n".join(f'- "{k}": {v}' for k, v in ACTIVITY_STATUSES.items()) + """
+
+Important rules:
+- Music/lofi/ambient streams (even if playing in a video player) = "available", NOT "focus_work"
+- Only use "focus_work" if you can see them actively writing code, documents, or similar
+- If a messaging app (Slack, Discord, Teams chat) is visible with conversations, that is "communication" — even if other notifications are present
+- If a meeting/video call notification or Zoom window is visible, prefer "in_meeting" over other statuses
+- "available" means truly idle — no active app usage visible
+
+Respond with JSON only: {"status": "<one of the statuses above>"}"""
+
+
 async def _analyze_screenshot(base64_image: str) -> dict:
-    """Send screenshot to Claude Haiku 4.5 for vision analysis."""
+    """Send screenshot to Claude Haiku 4.5 for privacy-preserving activity classification."""
     try:
         response = await vision_client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=200,
+            max_tokens=50,
             messages=[{
                 "role": "user",
                 "content": [
@@ -261,18 +291,23 @@ async def _analyze_screenshot(base64_image: str) -> dict:
                             "data": base64_image,
                         },
                     },
-                    {
-                        "type": "text",
-                        "text": 'What is this person doing on their computer? Are they actively working or idle/available? Respond in JSON: {"summary": "1-2 sentence description", "is_busy": true/false}',
-                    },
+                    {"type": "text", "text": VISION_PROMPT},
                 ],
             }],
         )
-        return json.loads(response.content[0].text)
+        raw = response.content[0].text.strip()
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        result = json.loads(raw)
+        status = result.get("status", "available")
+        if status not in ACTIVITY_STATUSES:
+            status = "available"
+        return {"status": status}
     except (json.JSONDecodeError, IndexError):
-        return {"summary": response.content[0].text, "is_busy": False}
+        return {"status": "available"}
     except Exception:
-        return {"summary": "Unable to analyze screenshot", "is_busy": False}
+        return {"status": "available"}
 
 
 def _make_summary(tool_name: str, args: dict) -> str:
