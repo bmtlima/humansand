@@ -8,7 +8,7 @@ services:
     ports:
       - "6001:80"
     networks:
-      - humansand
+      - linkmate
 
   screen-bob:
     build:
@@ -18,7 +18,7 @@ services:
     ports:
       - "6002:80"
     networks:
-      - humansand
+      - linkmate
 
   screen-charlie:
     build:
@@ -28,7 +28,7 @@ services:
     ports:
       - "6003:80"
     networks:
-      - humansand
+      - linkmate
 
   screen-diana:
     build:
@@ -38,7 +38,7 @@ services:
     ports:
       - "6004:80"
     networks:
-      - humansand
+      - linkmate
 
   # --- Screenshot service (Playwright) ---
   screenshot-svc:
@@ -58,7 +58,7 @@ services:
       - screen-charlie
       - screen-diana
     networks:
-      - humansand
+      - linkmate
 
   # --- Registry ---
   registry:
@@ -74,7 +74,7 @@ services:
       - AGENT_CHARLIE_URL=http://agent-charlie:8003
       - AGENT_DIANA_URL=http://agent-diana:8004
     networks:
-      - humansand
+      - linkmate
 
   # --- Agents ---
   agent-alice:
@@ -97,7 +97,7 @@ services:
       - registry
       - screenshot-svc
     networks:
-      - humansand
+      - linkmate
 
   agent-bob:
     build:
@@ -119,7 +119,7 @@ services:
       - registry
       - screenshot-svc
     networks:
-      - humansand
+      - linkmate
 
   agent-charlie:
     build:
@@ -141,7 +141,7 @@ services:
       - registry
       - screenshot-svc
     networks:
-      - humansand
+      - linkmate
 
   agent-diana:
     build:
@@ -163,7 +163,7 @@ services:
       - registry
       - screenshot-svc
     networks:
-      - humansand
+      - linkmate
 
   # --- API Gateway ---
   gateway:
@@ -188,7 +188,7 @@ services:
       - agent-charlie
       - agent-diana
     networks:
-      - humansand
+      - linkmate
 
   # --- Frontend ---
   frontend:
@@ -201,8 +201,8 @@ services:
     depends_on:
       - gateway
     networks:
-      - humansand
+      - linkmate
 
 networks:
-  humansand:
+  linkmate:
     driver: bridge

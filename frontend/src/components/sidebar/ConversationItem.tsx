@@ -55,11 +55,17 @@ export function ConversationItem({
       onKeyDown={(e) => {
         if (!isRenaming && (e.key === "Enter" || e.key === " ")) onClick();
       }}
-      className={`group relative flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${
-        isActive ? "bg-muted" : ""
+      className={`group relative flex w-full cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
+        isActive
+          ? "border-slate-300 bg-slate-100/90 shadow-sm dark:border-slate-700 dark:bg-slate-800/90"
+          : "border-transparent hover:border-slate-200 hover:bg-slate-100/70 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
       }`}
     >
-      <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <MessageSquare
+        className={`h-4 w-4 shrink-0 ${
+          isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"
+        }`}
+      />
       <div className="min-w-0 flex-1">
         {isRenaming ? (
           <input
@@ -78,7 +84,7 @@ export function ConversationItem({
             className="w-full rounded border bg-background px-1 py-0.5 text-sm font-medium outline-none focus:ring-1 focus:ring-ring"
           />
         ) : (
-          <p className="truncate font-medium">{conversation.title}</p>
+          <p className="truncate font-medium text-slate-700 dark:text-slate-200">{conversation.title}</p>
         )}
       </div>
       <div className={`shrink-0 ${menuOpen ? "block" : "hidden group-hover:block"}`}>

@@ -1,4 +1,4 @@
-# HumanSand
+# LinkMate
 
 Multi-agent negotiation system where personal AI agents communicate on behalf of users. Each user (Alice, Bob, Charlie, Diana) has a dedicated AI agent that can search a registry, message other agents, check calendars, and detect real-time activity via screenshot-based vision.
 

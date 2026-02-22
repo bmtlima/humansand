@@ -10,8 +10,8 @@ interface NewChatButtonProps {
 export function NewChatButton({ onClick }: NewChatButtonProps) {
   return (
     <Button
-      variant="outline"
-      className="w-full justify-start gap-2"
+      variant="default"
+      className="w-full justify-start gap-2 rounded-xl bg-slate-900 text-white shadow-sm hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
       onClick={onClick}
     >
       <Plus className="h-4 w-4" />

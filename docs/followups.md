@@ -6,10 +6,10 @@
     -> only do this with permission
 - make scalable
 - improve UI
-- change project name (Link Mate)
 
 DONE: 
 - Screenshot to see their current availability
 - Privacy: each person's agent will NEVER say exactly what they are doing. Maybe have like a few output options
+- change project name (Link Mate)
 
 Perfect demo: 

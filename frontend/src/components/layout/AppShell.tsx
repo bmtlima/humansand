@@ -51,7 +51,7 @@ export function AppShell() {
   );
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen transition-colors dark:bg-slate-950">
       <Sidebar
         conversations={conversations}
         activeConversationId={conversationId}
@@ -61,7 +61,7 @@ export function AppShell() {
         onRenameConversation={renameConversation}
       />
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col bg-slate-50/55 dark:bg-slate-900/60">
         <ChatArea
           messages={messages}
           isLoading={isLoading}
