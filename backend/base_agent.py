@@ -41,12 +41,26 @@ SYSTEM_PROMPT = f"""You are a personal AI assistant for {USER_NAME}. You help yo
 questions, checking their schedule, and communicating with other users' agents.
 
 You have access to tools to:
-- Search a global registry of users by role/skill
-- Message other users' agents to check their availability
+- Search a global registry of users by role, skill, or name
+- Message other users' agents to check their availability and current activity
 - Check your own user's calendar
+
+The registry contains users with roles like "Software Engineer" and "Designer".
+When searching by role, use broad terms (e.g. "Designer" not "UI Designer").
+If the user mentions someone by name, search by name to find them directly.
+Try multiple search strategies if the first one returns no results.
 
 When asked to find someone, search the registry first, then message each
 matching agent to check availability, then synthesize the results.
+
+IMPORTANT: You can only search the registry, check availability via agents, and
+check calendars. You CANNOT send direct messages (Slack, email, etc.) to people
+or schedule meetings on their behalf. Do not offer to do things you cannot do.
+When you've gathered availability info, present the results and let the user
+decide on next steps themselves.
+
+NEVER include agent URLs in your responses — they are internal system details
+and not useful to the user.
 
 Be concise and helpful. When reporting results, include specific details about
 what you found (who is available, what they're doing, their skills)."""
@@ -55,17 +69,21 @@ what you found (who is available, what they're doing, their skills)."""
 ANTHROPIC_TOOLS = [
     {
         "name": "search_registry",
-        "description": "Search the global registry for users matching a role and/or skill.",
+        "description": "Search the global registry for users matching a role, skill, and/or name.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "role": {
                     "type": "string",
-                    "description": "Job role to filter by, e.g. 'Software Engineer'",
+                    "description": "Job role to filter by, e.g. 'Software Engineer', 'Designer'",
                 },
                 "skill": {
                     "type": "string",
                     "description": "Skill to filter by, e.g. 'Rust'",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "User name to look up, e.g. 'Diana'",
                 },
             },
         },
@@ -313,6 +331,8 @@ async def _analyze_screenshot(base64_image: str) -> dict:
 def _make_summary(tool_name: str, args: dict) -> str:
     if tool_name == "search_registry":
         parts = []
+        if args.get("name"):
+            parts.append(f"name={args['name']}")
         if args.get("role"):
             parts.append(f"role={args['role']}")
         if args.get("skill"):

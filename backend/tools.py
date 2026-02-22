@@ -10,7 +10,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "search_registry",
-            "description": "Search the global registry for users matching a role and/or skill.",
+            "description": "Search the global registry for users matching a role, skill, and/or name.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -21,6 +21,10 @@ TOOL_SCHEMAS = [
                     "skill": {
                         "type": "string",
                         "description": "Skill to filter by, e.g. 'Rust'",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "User name to look up, e.g. 'Diana'",
                     },
                 },
             },
@@ -80,6 +84,8 @@ async def search_registry(args: dict, exclude_user: str) -> str:
         params["role"] = args["role"]
     if args.get("skill"):
         params["skill"] = args["skill"]
+    if args.get("name"):
+        params["name"] = args["name"]
     params["exclude"] = exclude_user
 
     async with httpx.AsyncClient() as client:

@@ -28,8 +28,8 @@ USERS = {
     },
     "Diana": {
         "name": "Diana",
-        "role": "Software Engineer",
-        "skills": ["Rust", "Python", "Kubernetes"],
+        "role": "Designer",
+        "skills": ["Figma", "Python", "JavaScript"],
         "agent_url": os.environ.get("AGENT_DIANA_URL", "http://localhost:8004"),
     },
 }
@@ -39,11 +39,14 @@ USERS = {
 def search(
     role: Optional[str] = Query(None),
     skill: Optional[str] = Query(None),
+    name: Optional[str] = Query(None),
     exclude: Optional[str] = Query(None),
 ):
     results = []
-    for name, user in USERS.items():
-        if exclude and name == exclude:
+    for uname, user in USERS.items():
+        if exclude and uname == exclude:
+            continue
+        if name and name.lower() not in uname.lower():
             continue
         if role and role.lower() not in user["role"].lower():
             continue
