@@ -4,6 +4,8 @@ import { Message } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ReasoningTrace } from "./ReasoningTrace";
 import { User, Bot } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface MessageBubbleProps {
   message: Message;
@@ -32,7 +34,15 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 : "border border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             }`}
           >
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         ) : isStreaming && (!message.reasoning_steps || message.reasoning_steps.length === 0) ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed shadow-sm dark:border-slate-700 dark:bg-slate-900">

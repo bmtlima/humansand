@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LinkMate - Multi-Agent Negotiation",
   description: "Personal AI agents that communicate and negotiate tasks",
+  icons: {
+    icon: "/linkmate-no-bg.png",
+  },
 };
 
 export default function RootLayout({

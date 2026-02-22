@@ -93,9 +93,6 @@ class ConversationStore:
         now = datetime.now(timezone.utc).isoformat()
 
         title = row["title"]
-        if title == "New conversation" and message.get("role") == "user":
-            text = message.get("content", "")
-            title = text[:50] + ("..." if len(text) > 50 else "")
 
         await self._db.execute(
             "UPDATE conversations SET messages = ?, title = ?, updated_at = ? WHERE id = ?",

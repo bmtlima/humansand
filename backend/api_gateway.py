@@ -4,6 +4,8 @@ import os
 from contextlib import asynccontextmanager
 
 import httpx
+import anthropic
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,28 @@ from fastapi.responses import StreamingResponse, Response
 
 from models import ChatMessageRequest, ChatMessageResponse, AssistantMessage, ReasoningStep, RenameRequest
 from conversation_store import store
+
+load_dotenv()
+
+_title_client = anthropic.AsyncAnthropic()
+
+
+async def _generate_title(conv_id: str, user_message: str):
+    """Call Haiku to generate a short conversation title, then update the store."""
+    try:
+        resp = await _title_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=30,
+            messages=[{"role": "user", "content": user_message}],
+            system="Generate a short title (max 6 words) for a conversation that starts with this message. Reply with ONLY the title, no quotes or punctuation at the end.",
+        )
+        title = resp.content[0].text.strip().rstrip(".")
+        if title:
+            await store.rename(conv_id, title)
+    except Exception:
+        # Fallback: use truncated message
+        fallback = user_message[:50] + ("..." if len(user_message) > 50 else "")
+        await store.rename(conv_id, fallback)
 
 
 @asynccontextmanager
@@ -46,11 +70,17 @@ SCREENSHOT_SERVICE_URL = os.environ.get("SCREENSHOT_SERVICE_URL", "http://localh
 async def chat(req: ChatMessageRequest):
     # Resolve or create conversation
     conv_id = req.conversation_id
+    is_new = False
     if not conv_id or not await store.get(conv_id):
         conv_id = await store.create(req.agent)
+        is_new = True
 
     # Store user message
     await store.add_message(conv_id, {"role": "user", "content": req.message})
+
+    # Generate a descriptive title for new conversations
+    if is_new:
+        asyncio.create_task(_generate_title(conv_id, req.message))
 
     # Get conversation history for context
     history = await store.get_history(conv_id)
