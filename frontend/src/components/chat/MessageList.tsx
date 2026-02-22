@@ -23,7 +23,7 @@ export function MessageList({ messages, isLoading, isStreaming = false }: Messag
       <div className="flex flex-1 items-center justify-center px-4 py-8">
         <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <Image
-            src="/linkmate-no-bg.png"
+            src="/linkmate_2d-no-bg.png"
             alt="LinkMate"
             width={80}
             height={80}

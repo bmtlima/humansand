@@ -32,7 +32,7 @@ export function Sidebar({
           <div className="mb-4 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-500 px-4 py-3 text-white shadow-md dark:from-indigo-500 dark:to-blue-400">
 
           <div className="flex items-center gap-2">
-            <Image src="/linkmate-no-bg.png" alt="LinkMate" width={28} height={28} />
+            <Image src="/linkmate_2d-no-bg.png" alt="LinkMate" width={28} height={28} />
             <h1 className="text-lg font-semibold tracking-tight">LinkMate</h1>
           </div>
           <p className="mt-1 text-xs text-indigo-100">AI Coordination Workspace</p>

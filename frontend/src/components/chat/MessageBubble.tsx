@@ -3,7 +3,8 @@
 import { Message } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ReasoningTrace } from "./ReasoningTrace";
-import { User, Bot } from "lucide-react";
+import { User } from "lucide-react";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -18,11 +19,9 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
   return (
     <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <Avatar className="mt-0.5 h-8 w-8 shrink-0 border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <AvatarFallback className="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300">
-            <Bot className="h-4 w-4" />
-          </AvatarFallback>
-        </Avatar>
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <Image src="/linkmate_2d-no-bg.png" alt="LinkMate" width={27} height={27} />
+        </div>
       )}
 
       <div className={`max-w-[88%] sm:max-w-[80%] ${isUser ? "order-first" : ""}`}>
